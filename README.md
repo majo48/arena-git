@@ -1,2 +1,2 @@
 # arena-git
-Digital Surface Model in SQLite database
+Create a 'Digital Surface Model' from Copernicus data and store the DSM in a SQLite database.
