@@ -23,7 +23,7 @@ import math
 class BoundingBox:
     def __init__(self, top, bottom, left, right):
         """
-            Valid for Western Europe & Asia (ex. UK) only
+            Valid for Western Europe & Asia only (ex. UK, Spain) 
         """
         self.top = math.ceil(top)
         self.bottom = math.floor(bottom)
