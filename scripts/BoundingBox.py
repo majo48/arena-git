@@ -1,15 +1,13 @@
-#!/usr/bin/env python3
-
 """
     Bounding Box for Copernicus data using the GLO-90 set of COG files:
       Info (height x width): 1 x 1 degrees latitude, longitude
       COG  (height x width): 1200 x 1200 elements
       Folder Naming Conventions:
         Copernicus_DSM_COG_[resolution]_[northing]_[easting]_DEM
-          resolution: 90
+          resolution: 30
           northing: N47_00
           easting:  E009_00
-          Name: COPERNICUS_DSM_COG_N47_00_E009_DEM
+          Name: COPERNICUS_DSM_COG_30_N47_00_E009_DEM
             Bounding Box:
               top: 48.000
               bottom: 47.000
@@ -43,7 +41,7 @@ class BoundingBox:
             while col < self.right:
                 northing = "N"+self.leading_zeros(row, 2)+"_00"
                 easting = "E"+self.leading_zeros(col, 3)+"_00"
-                fldr = "Copernicus_DSM_COG_90_"+northing+"_"+easting+"_DEM"
+                fldr = "Copernicus_DSM_COG_30_"+northing+"_"+easting+"_DEM"
                 self.names.append({
                     "top": row+1, "bottom": row, "left": col, "right": col+1, 
                     "fldr": fldr
@@ -70,8 +68,6 @@ class BoundingBox:
             raise Exception('panic')
         
 
-bb = BoundingBox(48.000, 47.000, 9.000, 10.000)
-print(bb.top, bb.bottom, bb.left, bb.right)
-for name in bb.names:
-    print(name["fldr"])
+if __name__ == '__main__':
+    print("This class module shall not be invoked on it's own.")
 
