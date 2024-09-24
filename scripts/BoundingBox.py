@@ -69,5 +69,5 @@ class BoundingBox:
         
 
 if __name__ == '__main__':
-    print("This class module shall not be invoked on it's own.")
+    print("This BoundigBox class module shall not be invoked on it's own.")
 

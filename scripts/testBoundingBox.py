@@ -5,6 +5,7 @@
 """
 
 from BoundingBox import BoundingBox 
+from XYZ import XYZ
 import subprocess
 import os
 
@@ -13,7 +14,7 @@ destination_XYZ = "/home/mart/arena-git/build/"
 
 def get_tile(tilename):
     """
-        Read Copernicus name from AWS S3 using aws-cli
+        Read Copernicus tile from AWS S3 using aws (cli)
     """
     s3link = "s3://copernicus-dem-90m/"+tilename+"/"
     destination = destination_tiles+tilename+"/"
@@ -24,7 +25,7 @@ def get_tile(tilename):
 
 def get_XYZ(tilename):
     """
-        Read Copernicus name and convert to XYZ format using GDAL
+        Read Copernicus tile and convert to XYZ format using GDAL (cli)
     """
     source = destination_tiles+tilename+"/"+tilename+".tif"
     destination = destination_XYZ+tilename+".txt"
@@ -38,7 +39,8 @@ def check_XYZ(tilename):
         Check XYZ file for any inconsistencies
     """
     source = destination_XYZ+tilename+".txt"
-    pass # continue here (new class, reusable?)
+    xyz = XYZ(source)
+    # continue here
 
 # main code ==============================================
 # one name
