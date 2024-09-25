@@ -10,19 +10,18 @@ import math
 import logging
 
 # define elevation matrix for COG-90 (accuracy: < 4 meters)
-HIGH = 1200 # matrix height (cols), equals cell size of 90 meters
-WIDE = 1200 # matrix width (rows), equals cell size of 90 meters
+EDGE = 1200 # matrix height (cols) and width (rows), equals cell size of 90 x 90 meters
 # number of digits after the decimal point in geospatial coordinates
-DGTS = 6 # accuracy in cm is 5:111, 6:11, 7:1
+DGTS = 6 # accuracy is 5:111cm, 6:11cm, 7:1cm
 # logging
 LOGFILE = 'arena.log' # located in project repository (.ignored)
 
 class XYZ:
     def __init__(self, filename):
-        self.col_headers = [None]*WIDE
-        self.row_headers = [None]*HIGH
+        self.col_headers = [None]*EDGE
+        self.row_headers = [None]*EDGE
         # create 2D matrix of integers organized in rows and cols
-        self.matrix = [[None for i in range(WIDE)] for j in range(HIGH)]  
+        self.matrix = [[None for i in range(EDGE)] for j in range(EDGE)]  
         # setup logging
         if os.path.exists(LOGFILE):
             os.remove(LOGFILE) # start a new logfile for each session
@@ -60,9 +59,54 @@ class XYZ:
     def set_matrix(self, filename):
         """
             read file and build matrix
+            line: three numbers, sepatated with spaces
+                longitude (9.xxx) in degrees east of Greenwich (G: Laengegrad)
+                latitude (48.xxx) in degrees north of equator (G: Breitengrad)
+                elevation (714.xxx) in meters above sea level
         """
-        pass
+        try:
+            file = open(filename, "r")
+            for row in range(EDGE):
+                for col in range(EDGE):
+                    line = file.readline()
+                    if not line:
+                        raise ValueError("Error in set_matrix: premature end of file.")
+                    self.set_cell(row, col, line)
+                pass
+            pass
+            file.close()
+        except ValueError as err:
+            logging.error(err.args)
 
+    def set_cell(self, row, col, line):
+        """
+            convert line to XYZ cell item
+        """
+        try:
+            # build cell, XYZ ====
+            li = line.split(" ")
+            fctr = 10 ** DGTS
+            x = int(float(li[0])*fctr)  # col index converted to int * 1000000
+            y = int(float(li[1])*fctr)  # row index converted to int * 1000000
+            z = int(float(li[2])) # elevation converted to int meters
+            # build col headers ====
+            if row == 0:
+                self.col_headers[col] = x # build column index
+            else:
+                # test column index
+                if self.col_headers[col] != x:  
+                    logging.warning('XYZ: column mismatch:'+self.col_headers[col]+" expected, got "+x)
+            # build row headers ====
+            if col == 0:
+                self.row_headers[row] = y # build row index
+            # build matrix
+            self.matrix[row][col] = z # elevation in meters
+            if (x == None) or (x <= 0):
+                logging.warning("XYZ: illegal z value: "+z) 
+            pass
+        except ValueError as err:
+            logging.error( err.args )
+        pass
 
 if __name__ == '__main__':
     print("This XYZ class module shall not be invoked on it's own.")
