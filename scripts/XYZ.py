@@ -8,75 +8,61 @@ import os
 import sys
 import math
 import logging
+from SQL import SQL
 
 # define elevation matrix for COG-90 (accuracy: < 4 meters)
 EDGE = 1200 # matrix height (cols) and width (rows), equals cell size of 90 x 90 meters
-# number of digits after the decimal point in geospatial coordinates
-DGTS = 6 # accuracy is 5:111cm, 6:11cm, 7:1cm
-# logging
-LOGFILE = 'arena.log' # located in project repository (.ignored)
+MTRX = EDGE * EDGE
 
 class XYZ:
-    def __init__(self, filename):
+    def __init__(self, filename, db: SQL):
+        self.db = db # SQLite3: database object
+        self.fctr = db.multiplier
         self.col_headers = [None]*EDGE
         self.row_headers = [None]*EDGE
-        # create 2D matrix of integers organized in rows and cols
-        self.matrix = [[None for i in range(EDGE)] for j in range(EDGE)]  
-        # setup logging
-        if os.path.exists(LOGFILE):
-            os.remove(LOGFILE) # start a new logfile for each session
-        logging.basicConfig(
-            level=logging.DEBUG, 
-            format='%(asctime)s %(levelname)s %(message)s',
-            filename=LOGFILE,
-            datefmt='%H:%M:%S'  
-        ) 
-        logging.debug('Start debugging session.')
-        # convert text file to headers and matrix
-        self.set_matrix(filename)
+        self.set_cells
+        (filename) # convert text file to database 
 
-    def get_col_headers(self):
-        if self.col_headers[0] is not None:
-            return self.col_headers
-        else:
-            logging.warning('Column list is empty!')
-            return [] 
-
-    def get_row_headers(self):
-        if self.row_headers[0] is not None:
-            return self.row_headers
-        else:
-            logging.warning('Row list is empty!')
-            return [] 
-
-    def get_matrix(self):
-        if self.matrix[0][0] is not None:
-            return self.matrix
-        else:
-            logging.warning('Matrix lists are empty!')
-            return [] 
-    
-    def set_matrix(self, filename):
+    def progress(self, count, total=MTRX, suffix=''):
+        """ 
+            display progress bar in console
         """
-            read file and build matrix
+        bar_len = 60
+        filled_len = int(round(bar_len * count / float(total)))
+        percents = round(100.0 * count / float(total), 1)
+        bar = '=' * filled_len + '-' * (bar_len - filled_len)
+        sys.stdout.write('[%s] %s%s ...%s\r' % (bar, percents, '%', suffix))
+        sys.stdout.flush()  # As suggested by Rom Ruben
+
+    def set_cells(self, filename):
+        """
+            read file and build matrix in the SQL database
             line: three numbers, sepatated with spaces
-                longitude (9.xxx) in degrees east of Greenwich (G: Laengegrad)
-                latitude (48.xxx) in degrees north of equator (G: Breitengrad)
-                elevation (714.xxx) in meters above sea level
+                longitude (9.xxx) in degrees east of Greenwich (G: Laengengrad) is X
+                latitude (48.xxx) in degrees north of equator (G: Breitengrad) is Y
+                elevation (714.xxx) in meters above sea level is Z
         """
         try:
             file = open(filename, "r")
+            cnt = 0 
+            self.progress(cnt)
             for row in range(EDGE):
                 for col in range(EDGE):
                     line = file.readline()
                     if not line:
-                        raise ValueError("Error in set_matrix: premature end of file.")
-                    self.set_cell(row, col, line)
+                        raise ValueError("Error in set_cells: premature end of file.")
+                    if self.set_cell(row, col, line): 
+                       raise ValueError("Error in set_cell: cannot add to database.")
+                    cnt += 1 # increment success counter
+                    if cnt ** 1000 == 0:
+                        self.progress(cnt)
+                    pass
                 pass
             pass
-            file.close()
         except ValueError as err:
             logging.error(err.args)
+        finally:
+            file.close()
 
     def set_cell(self, row, col, line):
         """
@@ -85,10 +71,10 @@ class XYZ:
         try:
             # build cell, XYZ ====
             li = line.split(" ")
-            fctr = 10 ** DGTS
-            x = int(float(li[0])*fctr)  # col index converted to int * 1000000
-            y = int(float(li[1])*fctr)  # row index converted to int * 1000000
-            z = int(float(li[2])) # elevation converted to int meters
+            x = int(float(li[0])*self.fctr)  # col index * 1000000 converted to int 
+            y = int(float(li[1])*self.fctr)  # row index * 1000000 converted to int 
+            z = int(float(li[2])) # elevation converted (rounded) to int meters
+
             # build col headers ====
             if row == 0:
                 self.col_headers[col] = x # build column index
@@ -96,17 +82,22 @@ class XYZ:
                 # test column index
                 if self.col_headers[col] != x:  
                     logging.warning('XYZ: column mismatch:'+self.col_headers[col]+" expected, got "+x)
+
             # build row headers ====
             if col == 0:
                 self.row_headers[row] = y # build row index
+
             # build matrix
-            self.matrix[row][col] = z # elevation in meters
             if (x == None) or (x <= 0):
                 logging.warning("XYZ: illegal z value: "+z) 
-            pass
+            self.db.set_matrix_cell(x, y, z)
+            quit = False
+        #
         except ValueError as err:
             logging.error( err.args )
-        pass
+            quit = True
+        finally:
+            return quit
 
 if __name__ == '__main__':
     print("This XYZ class module shall not be invoked on it's own.")
