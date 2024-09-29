@@ -6,8 +6,6 @@
 """
 
 import sqlite3
-import os
-import math
 import logging
 from sqlite3.dbapi2 import Connection, Cursor
 

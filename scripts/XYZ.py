@@ -12,15 +12,28 @@ from SQL import SQL
 
 # define elevation matrix for COG-90 (accuracy: < 4 meters)
 EDGE = 1200 # matrix height (cols) and width (rows), equals cell size of 90 x 90 meters
-MTRX = EDGE * EDGE
+MTRX = EDGE * EDGE # number of elements in matrix
 
 class XYZ:
     def __init__(self, filename, db: SQL):
-        self.db = db # SQLite3: database object
+        self.db = db # SQLite3: database object, not implemented yet
         self.fctr = db.multiplier
-        self.col_headers = [None]*EDGE
-        self.row_headers = [None]*EDGE
-        self.set_cells(filename) # convert text file to database 
+        # build headers (fixed size)
+        self.col_headers = [None]*EDGE # mutable
+        self.row_headers = [None]*EDGE # mutable
+        # build 2 dimensional array (fixed size)
+        self.matrix = []  
+        rows, cols = EDGE, EDGE
+        for i in range(rows):
+            col = bytearray([]) # mutable
+            for j in range(cols):
+                # set all cols == -1, 2 bytes per element
+                col.append(255) # high byte (big endian)
+                col.append(255) # low byte  (big endian)
+            self.matrix.append(col)
+        pass
+        # convert text file to database 
+        self.set_cells(filename) 
 
     def progress(self, count, total=MTRX, suffix=''):
         """ 
@@ -73,23 +86,28 @@ class XYZ:
             x = int(float(li[0])*self.fctr)  # col index * 1000000 converted to int 
             y = int(float(li[1])*self.fctr)  # row index * 1000000 converted to int 
             z = int(float(li[2])) # elevation converted (rounded) to int meters
+            z2b = z.to_bytes(2, byteorder='big') # elevation data up to 32'768 meters
 
-            # build col headers ====
+            # update col headers ====
             if row == 0:
-                self.col_headers[col] = x # build column index
+                self.col_headers[col] = x # update column index
             else:
                 # test column index
                 if self.col_headers[col] != x:  
                     logging.warning('XYZ: column mismatch:'+self.col_headers[col]+" expected, got "+x)
 
-            # build row headers ====
+            # update row headers ====
             if col == 0:
-                self.row_headers[row] = y # build row index
+                self.row_headers[row] = y # update row index
 
-            # build matrix
+            # update matrix
             if (x == None) or (x <= 0):
-                logging.warning("XYZ: illegal z value: "+z) 
-            self.db.set_matrix_cell(x, y, z)
+                logging.warning("XYZ: illegal z value: "+z)
+                # value in matrix == -1
+            else:
+                self.matrix[row][2*col] = z2b[0] # high byte, big endian
+                self.matrix[row][2*col+1] = z2b[1] # low byte, big endian 
+            pass
             quit = False
         #
         except ValueError as err:
