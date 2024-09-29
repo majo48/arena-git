@@ -13,15 +13,15 @@ from sqlite3.dbapi2 import Connection, Cursor
 
 class SQL:
 
-    def __init__(self, digits):
+    def __init__(self, dbpath, digits):
         """ 
             Initialize the SQL database 
         """
-        self.digits = digits # number of significant digits for geolocation coordinates
-        self.multiplier = 10 ** digits # same, see below in code
+        self.dbpath = dbpath # location and name of database file
+        self.multiplier = 10 ** digits # # number of significant digits for geolocation coordinates
         # build database
-        conn: Connection = self.__get_connection()
-        cursor: Cursor = conn.cursor()
+        self.conn: Connection = sqlite3.connect(dbpath)
+        cursor: Cursor = self.conn.cursor()
         try:
             # create table ...
             cursor.executescript("""
@@ -34,55 +34,48 @@ class SQL:
                 );  
                 CREATE UNIQUE INDEX IF NOT EXISTS idx ON matrix (xIndex, yIndex);
             """)
-            conn.commit()
-            # close database cursor
-            conn.close()
+            self.conn.commit()
         except sqlite3.Error as e:
             logging.error("SQLite CREATE TABLE error occurred:" + e.args[0])
         pass
 
     def __enter__(self):
         """ 
-            context manager 
+            context manager: bigin session
         """
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
         """ 
-            context manager 
+            context manager: end of session 
         """
-        self.__get_connection().close()
-
-    def __get_connection(self):
-        """ 
-            get SQLite connection object, create db file 
-        """
-        dbpath = os.path.dirname(os.path.realpath(__file__)) + '/db.sqlite3'
-        return sqlite3.connect(dbpath)
+        # close connection
+        self.conn.close()
 
     def set_matrix_cell(self, x: int, y: int, z: int):
         """ 
             set cell in database matrix x (lng east), y (lat north), z (elevation) 
         """
-        conn: Connection = self.__get_connection()
-        cursor: Cursor = conn.cursor()
+        cursor: Cursor = self.conn.cursor()
         sql = """
             INSERT INTO matrix (xIndex, yIndex, zVal)
             VALUES(?,?,?)
         """
         try:
             cursor.execute( sql, (x, y, z))
-            conn.commit()
+            self.conn.commit()
         except sqlite3.Error as err:
             logging.error("SQLite INSERT error occured: "+ err.args[0])
         finally:
-            conn.close()
+            pass
 
     def get_nearest_neighbor(self, x: float, y: float):
         """ 
             get nearest xy cell value (z) from database matrix
         """
-        pass
+        xIndex = int(x * self.multiplier) # normalized X index (longitude)
+        yIndex = int(y * self.multiplier) # normalized Y index (latitude)
+        raise Exception('Not implemented (yet).')
 
 
 if __name__ == '__main__':

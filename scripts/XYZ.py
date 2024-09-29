@@ -20,8 +20,7 @@ class XYZ:
         self.fctr = db.multiplier
         self.col_headers = [None]*EDGE
         self.row_headers = [None]*EDGE
-        self.set_cells
-        (filename) # convert text file to database 
+        self.set_cells(filename) # convert text file to database 
 
     def progress(self, count, total=MTRX, suffix=''):
         """ 
@@ -29,7 +28,7 @@ class XYZ:
         """
         bar_len = 60
         filled_len = int(round(bar_len * count / float(total)))
-        percents = round(100.0 * count / float(total), 1)
+        percents = round(100.0 * count / float(total), 3)
         bar = '=' * filled_len + '-' * (bar_len - filled_len)
         sys.stdout.write('[%s] %s%s ...%s\r' % (bar, percents, '%', suffix))
         sys.stdout.flush()  # As suggested by Rom Ruben
@@ -54,7 +53,7 @@ class XYZ:
                     if self.set_cell(row, col, line): 
                        raise ValueError("Error in set_cell: cannot add to database.")
                     cnt += 1 # increment success counter
-                    if cnt ** 1000 == 0:
+                    if cnt % 100 == 0:
                         self.progress(cnt)
                     pass
                 pass
