@@ -16,9 +16,14 @@ DGTS = 6 # accuracy depends on DGTS { 5: 111cm, 6: 11cm, 7: 1cm}
 # filenames and paths
 LOGFILE = '/home/mart/arena-git/build/arena.log' # normally .ignored
 XYZPATH = "/home/mart/arena-git/build/Copernicus_DSM_COG_30_N47_00_E009_00_DEM.txt"
-DBPATH = "/home/mart/arena-git/build/db.sqlite3"
+XDBPATH = "/home/mart/arena-git/build/arena.db"
 
 def calculate_size(obj):
+    """
+    Calculate the real size of standard Python objects 
+    the calculation does not consider shared objects
+    the value is the objects maximal size in bytes
+    """
     size = sys.getsizeof(obj)
     if isinstance(obj, dict):
         size += sum(calculate_size(v) for v in obj.values())
@@ -34,12 +39,17 @@ def calculate_size(obj):
     elif isinstance(obj, (int, float)):
         size += sys.getsizeof(obj)
     else:
-        size += sum(calculate_size(getattr(obj, attr)) for attr in dir(obj) if not callable(getattr(obj, attr)) and not attr.startswith('__'))
+        size += sum(
+            calculate_size(getattr(obj, attr))
+            for attr in dir(obj)
+            if not callable(getattr(obj, attr)) and not attr.startswith("__")
+        )
 
     return size
 
 # main code =============================================
-# setup logging
+
+# setup logging ====
 if os.path.exists(LOGFILE):
     os.remove(LOGFILE) # start a new logfile for each session
 logging.basicConfig(
@@ -52,13 +62,17 @@ logging.basicConfig(
 ) 
 logging.debug('Start new logging session.')
 
-# convert text to database
-with SQL(DBPATH, DGTS) as sqldb:
+# convert text to database ====
+with SQL(XDBPATH, DGTS) as sqldb:
     xyz = XYZ(XYZPATH, sqldb)
+    logging.debug('Finished building XYZ.')
+    sqldb.set_row_headers(xyz.row_headers)
+    sqldb.set_col_headers(xyz.col_headers)
+    sqldb.set_matrix_cells(xyz.matrix)
 pass
 logging.debug('row headers: '+str(calculate_size(xyz.row_headers)))
 logging.debug('col headers: '+str(calculate_size(xyz.col_headers)))
 logging.debug('matrix: '+str(calculate_size(xyz.matrix)))
 
-# finish
+# finish ====
 logging.debug('Finished building database and logging session.')
