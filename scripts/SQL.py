@@ -24,19 +24,21 @@ class SQL:
             # create table ...
             cursor.executescript("""
                 CREATE TABLE IF NOT EXISTS main.colhdrs(
-                  id INTEGER PRIMARY KEY ASC,
+                  id INTEGER PRIMARY KEY,
                   colhdr INTEGER NOT NULL
                 );
+                CREATE UNIQUE INDEX IF NOT EXISTS main.colIdx ON main.colhdrs(coldr);
                 CREATE TABLE IF NOT EXISTS main.rowhdrs(
-                  id INTEGER PRIMARY KEY ASC,
+                  id INTEGER PRIMARY KEY,
                   rowhdr INTEGER NOT NULL
                 );
+                CREATE UNIQUE INDEX IF NOT EXISTS main.rowIdx ON main.rowhdrs(rowhdr);
                 CREATE TABLE IF NOT EXISTS main.rows(
-                  id INTEGER PRIMARY KEY ASC,
+                  id INTEGER PRIMARY KEY,
                   row BLOB NOT NULL
                 );
                 CREATE TABLE IF NOT EXISTS main.metadata(
-                  id INTEGER PRIMARY KEY ASC,
+                  id INTEGER PRIMARY KEY,
                   tilepath TEXT NOT NULL,
                   moreinfo TEXT
                 );
