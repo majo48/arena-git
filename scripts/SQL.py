@@ -11,12 +11,11 @@ from sqlite3.dbapi2 import Connection, Cursor
 
 class SQL:
 
-    def __init__(self, dbpath, digits):
+    def __init__(self, dbpath):
         """ 
         Initialize the SQL database 
         """
         self.dbpath = dbpath # location and name of database file
-        self.multiplier = 10 ** digits # # number of significant digits for geolocation coordinates
         # build database
         self.conn: Connection = sqlite3.connect(dbpath)
         cursor: Cursor = self.conn.cursor()
@@ -25,14 +24,12 @@ class SQL:
             cursor.executescript("""
                 CREATE TABLE IF NOT EXISTS main.colhdrs(
                   id INTEGER PRIMARY KEY,
-                  colhdr INTEGER NOT NULL
+                  colhdr REAL NOT NULL
                 );
-                CREATE UNIQUE INDEX IF NOT EXISTS main.colIdx ON main.colhdrs(coldr);
                 CREATE TABLE IF NOT EXISTS main.rowhdrs(
                   id INTEGER PRIMARY KEY,
-                  rowhdr INTEGER NOT NULL
+                  rowhdr REAL NOT NULL
                 );
-                CREATE UNIQUE INDEX IF NOT EXISTS main.rowIdx ON main.rowhdrs(rowhdr);
                 CREATE TABLE IF NOT EXISTS main.rows(
                   id INTEGER PRIMARY KEY,
                   row BLOB NOT NULL
@@ -40,13 +37,15 @@ class SQL:
                 CREATE TABLE IF NOT EXISTS main.metadata(
                   id INTEGER PRIMARY KEY,
                   tilepath TEXT NOT NULL,
-                  moreinfo TEXT
+                  tileinfo TEXT NOT NULL
                 );
             """)
             self.conn.commit()
         except sqlite3.Error as e:
             logging.error("SQLite CREATE TABLE error occurred:" + e.args[0])
         pass
+
+    # context manager ========
 
     def __enter__(self):
         """ 
@@ -61,23 +60,7 @@ class SQL:
         # close connection
         self.conn.close()
 
-    def set_matrix_cell(self, x: int, y: int, z: int):
-        """ 
-        set cell in database matrix x (lng east), y (lat north), z (elevation) 
-        """
-        cursor: Cursor = self.conn.cursor()
-        sql = """
-            INSERT INTO matrix (xIndex, yIndex, zVal)
-            VALUES(?,?,?)
-        """
-        try:
-            raise Exception('DEPRECIATED')
-            cursor.execute( sql, (x, y, z))
-            self.conn.commit()
-        except sqlite3.Error as err:
-            logging.error("SQLite INSERT error occured: "+ err.args[0])
-        finally:
-            pass
+    # row headers ========
 
     def set_row_headers(self, row_headers):
         """
@@ -87,6 +70,14 @@ class SQL:
             pass
         pass
 
+    def get_row_headers(self):
+        """
+        get row headers (latitudes aka Y, values ascending)
+        """
+        return []
+
+    # column headers ========
+
     def set_col_headers(self, col_headers):
         """
         set column headers (longitudes aka X, aka values ascending)
@@ -95,22 +86,34 @@ class SQL:
             pass
         pass
     
-    def set_matrix_cells(self, bList):
-        """ 
-        set matrix, all cells    
+    def get_col_headers(self):
         """
-        for i in range(len(bList)):
+        get column headers (longitudes aka X, aka values ascending)
+        """
+        return []
+
+    # matrix ========
+    def set_matrix(self, matrix: list, tilepath: str, tileinfo: str):
+        """
+        set matrix, all rows
+        """
+        for i in range(len(matrix)):
             pass
         pass
+
+    def get_matrix_row(self, rowId: int):
+        """
+        set matrix, one row with a binary list
+        """
+        return []
 
     def get_nearest_neighbor(self, x: float, y: float):
         """ 
         get nearest xy cell value (z) from database matrix
         """
-        xIndex = int(x * self.multiplier) # normalized X index (longitude)
-        yIndex = int(y * self.multiplier) # normalized Y index (latitude)
         raise Exception('WORK IN PROGRESS')
 
+# main ========
 
 if __name__ == '__main__':
     print("This SQL class module shall not be invoked on it's own.")

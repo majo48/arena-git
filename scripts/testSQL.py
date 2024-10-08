@@ -63,12 +63,12 @@ logging.basicConfig(
 logging.debug('Start new logging session.')
 
 # convert text to database ====
-with SQL(XDBPATH, DGTS) as sqldb:
-    xyz = XYZ(XYZPATH, sqldb)
+with SQL(XDBPATH) as sqldb:
+    xyz = XYZ(XYZPATH)
     logging.debug('Finished building XYZ.')
     sqldb.set_row_headers(xyz.row_headers)
     sqldb.set_col_headers(xyz.col_headers)
-    sqldb.set_matrix_cells(xyz.matrix)
+    sqldb.set_matrix(xyz.matrix, XYZPATH, xyz.bounding_box)
 pass
 logging.debug('row headers: '+str(calculate_size(xyz.row_headers)))
 logging.debug('col headers: '+str(calculate_size(xyz.col_headers)))

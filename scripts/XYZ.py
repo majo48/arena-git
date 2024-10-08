@@ -8,16 +8,14 @@ import os
 import sys
 import math
 import logging
-from SQL import SQL
+import json
 
 # define elevation matrix for COG-90 (accuracy: < 4 meters)
 EDGE = 1200 # matrix height (cols) and width (rows), equals cell size of 90 x 90 meters
 MTRX = EDGE * EDGE # number of elements in matrix
 
 class XYZ:
-    def __init__(self, filename, db: SQL):
-        self.db = db # SQLite3: database object, not implemented yet
-        self.fctr = db.multiplier
+    def __init__(self, filename):
         # build headers (fixed size)
         self.col_headers = [None]*EDGE # mutable
         self.row_headers = [None]*EDGE # mutable
@@ -33,7 +31,7 @@ class XYZ:
             self.matrix.append(col)
         pass
         # convert text file to database 
-        self.set_cells(filename) 
+        self.bounding_box = self.set_cells(filename) 
 
     def progress(self, count, total=MTRX, suffix=''):
         """ 
@@ -70,11 +68,13 @@ class XYZ:
                         self.progress(cnt)
                     pass
                 pass
-            pass
+            bb = self.get_bounding_box()
         except ValueError as err:
             logging.error(err.args)
+            bb = "{}" # empty dictionary
         finally:
             file.close()
+            return bb
 
     def set_cell(self, row, col, line):
         """
@@ -83,8 +83,8 @@ class XYZ:
         try:
             # build cell, XYZ ====
             li = line.split(" ")
-            x = int(float(li[0])*self.fctr)  # col index * 1000000 converted to int 
-            y = int(float(li[1])*self.fctr)  # row index * 1000000 converted to int 
+            x = float(li[0])  # col index in floating format 
+            y = float(li[1])  # row index in floating format 
             z = int(float(li[2])) # elevation converted (rounded) to int meters
             z2b = z.to_bytes(2, byteorder='big') # elevation data up to 32'768 meters
 
@@ -101,13 +101,8 @@ class XYZ:
                 self.row_headers[row] = y # update row index
 
             # update matrix
-            if (x == None) or (x <= 0):
-                logging.warning("XYZ: illegal z value: "+z)
-                # value in matrix == -1
-            else:
-                self.matrix[row][2*col] = z2b[0] # high byte, big endian
-                self.matrix[row][2*col+1] = z2b[1] # low byte, big endian 
-            pass
+            self.matrix[row][2*col] = z2b[0] # high byte, big endian
+            self.matrix[row][2*col+1] = z2b[1] # low byte, big endian 
             quit = False
         #
         except ValueError as err:
@@ -115,6 +110,19 @@ class XYZ:
             quit = True
         finally:
             return quit
+        
+    def get_bounding_box(self):
+        """
+        Get the json representation of the bounding box of the matrix
+        """ 
+        bb = { 
+            "top": str(self.row_headers[0]), 
+            "bottom": str(self.row_headers[-1]), 
+            "left": str(self.col_headers[0]), 
+            "right": str(self.col_headers[-1])
+        }
+        return json.dumps(bb)
+
 
 if __name__ == '__main__':
     print("This XYZ class module shall not be invoked on it's own.")
