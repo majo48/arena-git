@@ -69,7 +69,7 @@ class SQL:
         """
         cursor: Cursor = self.conn.cursor()
         cursor.execute("DELETE FROM "+tName+";")
-        self.conn.commit
+        self.conn.commit()
 
     # row headers ========
 
@@ -83,7 +83,7 @@ class SQL:
             cursor: Cursor = self.conn.cursor()
             bData = pickle.dumps(row_headers, protocol=-1) # serialize row headers
             cursor.execute(sql, (bData,))
-            self.conn.commit
+            self.conn.commit()
         except sqlite3.Error as e:
             logging.error("SQLite INSERT TABLE rowhdrs error occurred:" + e.args[0])
         pass
@@ -115,7 +115,7 @@ class SQL:
             cursor: Cursor = self.conn.cursor()
             bData = pickle.dumps(col_headers, protocol=-1) # serialize column headers
             cursor.execute(sql, (bData,))
-            self.conn.commit
+            self.conn.commit()
         except sqlite3.Error as e:
             logging.error("SQLite INSERT TABLE colhdrs error occurred:" + e.args[0])
         pass
@@ -147,7 +147,7 @@ class SQL:
             # add each matrix row to empty table
             for idx in range(len(matrix)):
                 cursor.execute(sql, (idx, matrix[idx]))
-                self.conn.commit
+                self.conn.commit()
             pass
         except sqlite3.Error as e:
             logging.error("SQLite INSERT TABLE rows error occurred:" + e.args[0])
@@ -162,7 +162,7 @@ class SQL:
             sql = "INSERT INTO main.metadata(tilepath, tileinfo) VALUES (?, ?);"
             cursor: Cursor = self.conn.cursor()
             cursor.execute(sql, (tilepath, tileinfo))
-            self.conn.commit
+            self.conn.commit()
             pass
         except sqlite3.Error as e:
             logging.error("SQLite INSERT TABLE metadata error occurred:" + e.args[0])

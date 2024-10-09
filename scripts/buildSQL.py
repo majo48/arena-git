@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-    Test SQLite3 database
+    Build SQLite3 database
 """
 
 from XYZ import XYZ
@@ -14,8 +14,8 @@ import sys
 # filenames and paths
 LOGFILE = '/home/mart/arena-git/build/arena.log' # normally .ignored
 XYZPATH = "/home/mart/arena-git/build/Copernicus_DSM_COG_30_N47_00_E009_00_DEM.txt"
-XDBPATH = "/home/mart/arena-git/build/arena.db"
-
+# XDBPATH = "/home/mart/arena-git/build/arena.db" # in WSL Project
+XDBPATH = "/mnt/c/Users/mart/Desktop/arena.db" # in Windows, Debug with DB Browser App
 def calculate_size(obj):
     """
     Calculate the real size of standard Python objects 
@@ -64,13 +64,17 @@ logging.debug('Start new logging session.')
 with SQL(XDBPATH) as sqldb:
     xyz = XYZ(XYZPATH)
     logging.debug('Finished building XYZ.')
+    print("Building database, please wait ...")
     sqldb.set_row_headers(xyz.row_headers)
+    logging.debug('Built row headers.')
     sqldb.set_col_headers(xyz.col_headers)
+    logging.debug('Built column headers.')
     sqldb.set_matrix(xyz.matrix, XYZPATH, xyz.bounding_box)
+    logging.debug('Built matrix rows.')
 pass
-logging.debug('row headers: '+str(calculate_size(xyz.row_headers)))
-logging.debug('col headers: '+str(calculate_size(xyz.col_headers)))
-logging.debug('matrix: '+str(calculate_size(xyz.matrix)))
+logging.debug('row headers: '+str(calculate_size(xyz.row_headers))+' bytes.')
+logging.debug('col headers: '+str(calculate_size(xyz.col_headers))+' bytes.')
+logging.debug('matrix: '+str(calculate_size(xyz.matrix))+' bytes.')
 
 # finish ====
 logging.debug('Finished building database and logging session.')
