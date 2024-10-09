@@ -74,6 +74,7 @@ class XYZ:
             bb = "{}" # empty dictionary
         finally:
             file.close()
+            sys.stdout.write("\n")
             return bb
 
     def set_cell(self, row, col, line):

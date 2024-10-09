@@ -11,8 +11,6 @@ import os
 import sys
 
 # constants =============================================
-# number of digits after the decimal point in geospatial coordinates
-DGTS = 6 # accuracy depends on DGTS { 5: 111cm, 6: 11cm, 7: 1cm}
 # filenames and paths
 LOGFILE = '/home/mart/arena-git/build/arena.log' # normally .ignored
 XYZPATH = "/home/mart/arena-git/build/Copernicus_DSM_COG_30_N47_00_E009_00_DEM.txt"

@@ -2,11 +2,12 @@
     SQLite with Copernicus elevation data.
     N x 1200 x 1200 cells with geospatial coordinates and elevation data,
     each coordinate describes the centerpoint of the geospatial cell. 
-    N is the numeber of tiles needed for arena.
+    N is the number of tiles needed for arena.
 """
 
 import sqlite3
 import logging
+import pickle
 from sqlite3.dbapi2 import Connection, Cursor
 
 class SQL:
@@ -23,12 +24,12 @@ class SQL:
             # create table ...
             cursor.executescript("""
                 CREATE TABLE IF NOT EXISTS main.colhdrs(
-                  id INTEGER PRIMARY KEY,
-                  colhdr REAL NOT NULL
+                  id INTEGER PRIMARY KEY AUTOINCREMENT,
+                  colhdrs BLOB NOT NULL
                 );
                 CREATE TABLE IF NOT EXISTS main.rowhdrs(
-                  id INTEGER PRIMARY KEY,
-                  rowhdr REAL NOT NULL
+                  id INTEGER PRIMARY KEY AUTOINCREMENT,
+                  rowhdrs BLOB NOT NULL
                 );
                 CREATE TABLE IF NOT EXISTS main.rows(
                   id INTEGER PRIMARY KEY,
@@ -60,52 +61,118 @@ class SQL:
         # close connection
         self.conn.close()
 
+    # common functions ========
+
+    def _delete_rows(self, tName):
+        """
+        delete all rows in table 'tName'
+        """
+        cursor: Cursor = self.conn.cursor()
+        cursor.execute("DELETE FROM "+tName+";")
+        self.conn.commit
+
     # row headers ========
 
     def set_row_headers(self, row_headers):
         """
-        set row headers (latitudes aka Y, values ascending)
+        set pickled row headers (latitudes aka Y, values ascending)
         """
-        for i in range(len(row_headers)):
-            pass
+        try:
+            self._delete_rows("main.rowhdrs")
+            sql = "INSERT INTO main.rowhdrs(rowhdrs) VALUES (?);"
+            cursor: Cursor = self.conn.cursor()
+            bData = pickle.dumps(row_headers, protocol=-1) # serialize row headers
+            cursor.execute(sql, (bData,))
+            self.conn.commit
+        except sqlite3.Error as e:
+            logging.error("SQLite INSERT TABLE rowhdrs error occurred:" + e.args[0])
         pass
 
     def get_row_headers(self):
         """
-        get row headers (latitudes aka Y, values ascending)
+        get pickeled row headers (latitudes aka Y, values ascending)
         """
-        return []
+        try:
+            sql = "SELECT rowhdrs FROM main.rowhdrs ORDER BY id DESC LIMIT 1;"
+            cursor: Cursor = self.conn.cursor()
+            cursor.execute(sql, (1,))
+            rslt = pickle.loads(cursor.fetchone()[0]) # deserialize row headers
+        except sqlite3.Error as e:
+            logging.error("SQLite SELECT TABLE rowhdrs error occurred:" + e.args[0])
+            rslt = []
+        finally:
+            return rslt
 
     # column headers ========
 
     def set_col_headers(self, col_headers):
         """
-        set column headers (longitudes aka X, aka values ascending)
+        set pickeled column headers (longitudes aka X, aka values ascending)
         """
-        for i in range(len(col_headers)):
-            pass
+        try:
+            self._delete_rows("main.colhdrs")
+            sql = "INSERT INTO main.colhdrs(colhdrs) VALUES (?);"
+            cursor: Cursor = self.conn.cursor()
+            bData = pickle.dumps(col_headers, protocol=-1) # serialize column headers
+            cursor.execute(sql, (bData,))
+            self.conn.commit
+        except sqlite3.Error as e:
+            logging.error("SQLite INSERT TABLE colhdrs error occurred:" + e.args[0])
         pass
     
     def get_col_headers(self):
         """
-        get column headers (longitudes aka X, aka values ascending)
+        get pickeled column headers (longitudes aka X, aka values ascending)
         """
-        return []
+        try:
+            sql = "SELECT colhdrs FROM main.colhdrs ORDER BY id DESC LIMIT 1;"
+            cursor: Cursor = self.conn.cursor()
+            cursor.execute(sql, (1,))
+            rslt = pickle.loads(cursor.fetchone()[0])
+        except sqlite3.Error as e:
+            logging.error("SQLite SELECT TABLE colhdrs error occurred:" + e.args[0])
+            rslt = []
+        finally:
+            return rslt
 
     # matrix ========
     def set_matrix(self, matrix: list, tilepath: str, tileinfo: str):
         """
         set matrix, all rows
         """
-        for i in range(len(matrix)):
+        try:
+            self._delete_rows("main.rows")
+            sql = "INSERT INTO main.rows(id, row) VALUES (?, ?);"
+            cursor: Cursor = self.conn.cursor()
+            # add each matrix row to empty table
+            for idx in range(len(matrix)):
+                cursor.execute(sql, (idx, matrix[idx]))
+                self.conn.commit
             pass
+        except sqlite3.Error as e:
+            logging.error("SQLite INSERT TABLE rows error occurred:" + e.args[0])
+        pass
+
+    def set_metadata(self, tilepath: str, tileinfo: str):
+        """
+        set metadata
+        """
+        try:
+            self._delete_rows("main.metadata")
+            sql = "INSERT INTO main.metadata(tilepath, tileinfo) VALUES (?, ?);"
+            cursor: Cursor = self.conn.cursor()
+            cursor.execute(sql, (tilepath, tileinfo))
+            self.conn.commit
+            pass
+        except sqlite3.Error as e:
+            logging.error("SQLite INSERT TABLE metadata error occurred:" + e.args[0])
         pass
 
     def get_matrix_row(self, rowId: int):
         """
         set matrix, one row with a binary list
         """
-        return []
+        raise Exception('WORK IN PROGRESS')
 
     def get_nearest_neighbor(self, x: float, y: float):
         """ 
