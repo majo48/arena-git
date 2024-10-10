@@ -69,6 +69,7 @@ class XYZ:
                     pass
                 pass
             bb = self.get_bounding_box()
+            pass
         except ValueError as err:
             logging.error(err.args)
             bb = "{}" # empty dictionary
@@ -117,10 +118,10 @@ class XYZ:
         Get the json representation of the bounding box of the matrix
         """ 
         bb = { 
-            "top": str(self.row_headers[0]), 
-            "bottom": str(self.row_headers[-1]), 
-            "left": str(self.col_headers[0]), 
-            "right": str(self.col_headers[-1])
+            "top": self.row_headers[0], 
+            "bottom": self.row_headers[-1], 
+            "left": self.col_headers[0], 
+            "right": self.col_headers[-1]
         }
         return json.dumps(bb)
 

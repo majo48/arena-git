@@ -95,7 +95,7 @@ class SQL:
         try:
             sql = "SELECT rowhdrs FROM main.rowhdrs ORDER BY id DESC LIMIT 1;"
             cursor: Cursor = self.conn.cursor()
-            cursor.execute(sql, (1,))
+            cursor.execute(sql)
             rslt = pickle.loads(cursor.fetchone()[0]) # deserialize row headers
         except sqlite3.Error as e:
             logging.error("SQLite SELECT TABLE rowhdrs error occurred:" + e.args[0])
@@ -127,7 +127,7 @@ class SQL:
         try:
             sql = "SELECT colhdrs FROM main.colhdrs ORDER BY id DESC LIMIT 1;"
             cursor: Cursor = self.conn.cursor()
-            cursor.execute(sql, (1,))
+            cursor.execute(sql)
             rslt = pickle.loads(cursor.fetchone()[0])
         except sqlite3.Error as e:
             logging.error("SQLite SELECT TABLE colhdrs error occurred:" + e.args[0])
@@ -167,6 +167,21 @@ class SQL:
         except sqlite3.Error as e:
             logging.error("SQLite INSERT TABLE metadata error occurred:" + e.args[0])
         pass
+
+    def get_metadata(self):
+        """
+        get metadata
+        """
+        try:
+            sql = "SELECT tilepath, tileinfo FROM main.metadata ORDER BY id DESC LIMIT 1;"
+            cursor: Cursor = self.conn.cursor()
+            cursor.execute(sql)
+            rslt = cursor.fetchall()[0]
+        except sqlite3.Error as e:
+            logging.error("SQLite SELECT TABLE colhdrs error occurred:" + e.args[0])
+            rslt = ()
+        finally:
+            return rslt # tuple, ('path', 'info')
 
     def get_matrix_row(self, rowId: int):
         """

@@ -16,6 +16,7 @@ LOGFILE = '/home/mart/arena-git/build/arena.log' # normally .ignored
 XYZPATH = "/home/mart/arena-git/build/Copernicus_DSM_COG_30_N47_00_E009_00_DEM.txt"
 # XDBPATH = "/home/mart/arena-git/build/arena.db" # in WSL Project
 XDBPATH = "/mnt/c/Users/mart/Desktop/arena.db" # in Windows, Debug with DB Browser App
+
 def calculate_size(obj):
     """
     Calculate the real size of standard Python objects 
@@ -65,12 +66,17 @@ with SQL(XDBPATH) as sqldb:
     xyz = XYZ(XYZPATH)
     logging.debug('Finished building XYZ.')
     print("Building database, please wait ...")
+    #
     sqldb.set_row_headers(xyz.row_headers)
     logging.debug('Built row headers.')
+    #
     sqldb.set_col_headers(xyz.col_headers)
     logging.debug('Built column headers.')
+    #
     sqldb.set_matrix(xyz.matrix, XYZPATH, xyz.bounding_box)
     logging.debug('Built matrix rows.')
+    #
+    sqldb.set_metadata(XYZPATH, xyz.bounding_box)
 pass
 logging.debug('row headers: '+str(calculate_size(xyz.row_headers))+' bytes.')
 logging.debug('col headers: '+str(calculate_size(xyz.col_headers))+' bytes.')
