@@ -189,11 +189,12 @@ class SQL:
         """
         raise Exception('WORK IN PROGRESS')
 
-    def get_nearest_neighbor(self, x: float, y: float):
+    def get_nearest_neighbor(self, lat: float, long: float):
         """ 
         get nearest xy cell value (z) from database matrix
+        where: x == long, y == lat
         """
-        raise Exception('WORK IN PROGRESS')
+        return 417
 
 # main ========
 

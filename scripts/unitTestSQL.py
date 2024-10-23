@@ -1,22 +1,19 @@
 #!/usr/bin/env python3
 
 """
-    Unit test SQLite3 database
+    Unit test script, exercising the SQLite3 database
 """
 
 from SQL import SQL
 from Route import Route
 import json
 import logging
-import math
-import os
-import sys
 
 # constants ========
 
 # filenames and paths
 # XDBPATH = "/home/mart/arena-git/build/arena.db" # in WSL Project
-XDBPATH = "/mnt/c/Users/mart/Desktop/arena.db" # in Windows, Debug with DB Browser App
+XDBPATH = "/mnt/c/Users/mart/Desktop/arena.db" # in Windows, Debug with 'DB Browser' App
 
 # locations (lat, long)
 cityZug = (47.170358, 8.518013)         # (lat, long)
@@ -31,17 +28,30 @@ citySeon = (47.34673, 8.16113)          # (lat, long)
 
 logging.debug('Begin unit test for database.')
 with SQL(XDBPATH) as sqldb:
+    #
+    # create test route, waypoints and tracks
     metadata = sqldb.get_metadata()
     route = Route(json.loads(metadata[1]))
     waypoints = [ cityZug, cityBaar, cityCham ]
     tracks = route.build_route('Zug-Baar-Cham', waypoints)
     prvsTrack = None
+    #
+    # test equidistant tracks
+    print("Track-point information:")
     for track in tracks["tracks"]:
+        sTrack = '('+f'{track[0]:.6f}'+', '+f'{track[1]:.6f}'+')'
         if prvsTrack == None:
-            print('track: '+str(track))
+            print('track: '+sTrack+', 1st waypoint')
         else:
             dstnc = int(route.calc_distance(prvsTrack, track))
-            print('track: '+str(track)+', distance: '+str(dstnc))            
+            print('track: '+sTrack+', distance: '+str(dstnc))            
         prvsTrack = track
+    #
+    # test database elevation profile
+    print("Meters above sea level:")
+    for track in tracks["tracks"]:
+        masl = sqldb.get_nearest_neighbor(track[0], track[1])
+        print('track: ('+f'{track[0]:.6f}'+', '+f'{track[1]:.6f}'+', elevation: '+str(masl)+')'
+        )
     pass
 logging.debug('End unit test for database.')
