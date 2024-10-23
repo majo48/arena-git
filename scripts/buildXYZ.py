@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-    Test Copernicus data module
+    Build XYZ file from Copernicus data residing on AWS S3
 """
 
 from BoundingBox import BoundingBox 
@@ -44,7 +44,7 @@ def check_XYZ(tilename):
 
 # main code ==============================================
 # one name
-bb = BoundingBox(48.000, 47.000, 9.000, 10.000) 
+bb = BoundingBox(48.000, 47.000, 8.000, 9.000) 
 # two tiles
 # bb = BoundingBox(48.000, 47.000, 8.000, 10.000) 
 # swiss tiles

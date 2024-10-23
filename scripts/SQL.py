@@ -128,7 +128,7 @@ class SQL:
             sql = "SELECT colhdrs FROM main.colhdrs ORDER BY id DESC LIMIT 1;"
             cursor: Cursor = self.conn.cursor()
             cursor.execute(sql)
-            rslt = pickle.loads(cursor.fetchone()[0])
+            rslt = pickle.loads(cursor.fetchone()[0]) # deserialize column headers
         except sqlite3.Error as e:
             logging.error("SQLite SELECT TABLE colhdrs error occurred:" + e.args[0])
             rslt = []

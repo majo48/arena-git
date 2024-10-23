@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-    Build SQLite3 database
+    Build SQLite3 database using XYZ file data
 """
 
 from XYZ import XYZ
@@ -13,7 +13,7 @@ import sys
 # constants =============================================
 # filenames and paths
 LOGFILE = '/home/mart/arena-git/build/arena.log' # normally .ignored
-XYZPATH = "/home/mart/arena-git/build/Copernicus_DSM_COG_30_N47_00_E009_00_DEM.txt"
+XYZPATH = "/home/mart/arena-git/build/Copernicus_DSM_COG_30_N47_00_E008_00_DEM.txt"
 # XDBPATH = "/home/mart/arena-git/build/arena.db" # in WSL Project
 XDBPATH = "/mnt/c/Users/mart/Desktop/arena.db" # in Windows, Debug with DB Browser App
 

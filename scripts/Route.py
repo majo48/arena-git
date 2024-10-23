@@ -1,10 +1,11 @@
 """
     Build route with geospatial coordinates (waypoints), 
-    each coordinate describes the track between waypoints, 
+    each coordinate describes a trackpoint between waypoints, 
     depending on the speed of a hypothetical drone. 
 """
 
 from math import radians, sin, cos, acos
+import logging
 
 SPEED = 160 # km/hr (police drone)
 INTERVAL = 2 # sampling interval in seconds
@@ -31,8 +32,6 @@ class Route:
         rslt = (place[0] <= self.bb["top"]) and (place[0] >= self.bb["bottom"])
         # check longitude
         rslt = rslt and (place[1] >= self.bb["left"]) and (place[1] <= self.bb["right"]) 
-        if rslt == False:
-            print('Waypoint '+str(place)+' not in scope (outside of bounding box).')
         return rslt
 
 
@@ -50,36 +49,42 @@ class Route:
 
     def build_tracks(self, fromWP: tuple, toWP: tuple):
         """
-        Build the tracks from one waypoint, to another waypoint, 
+        Build the trackpoints from one waypoint, to another waypoint, 
         in 'steps', each defined by a (lat, long) tuple.
-        'steps' are defined by flying a hypothetical drone.
+        'steps' are defined like flying with a hypothetical drone.
         """
-        if self.inScope(fromWP) and self.inScope(toWP):
-            distance = self.calc_distance(fromWP, toWP)
-            steps = int(distance / INTERVALLDISTANCE)
-            # build waypoints
-            track = [None]*steps # mutable
-            track[0] = fromWP
-            track[steps-1] = toWP
-            latDelta = (toWP[0]-fromWP[0])/(steps-1)
-            lngDelta = (toWP[1]-fromWP[1])/(steps-1)
-            for i in range(1, steps-1):
-                prvs = track[i-1]
-                lat = prvs[0]+latDelta
-                lng = prvs[1]+lngDelta
-                track[i] = (lat, lng)
-            return track
+        if self.inScope(fromWP): 
+            if self.inScope(toWP):
+                distance = self.calc_distance(fromWP, toWP)
+                steps = int(distance / INTERVALLDISTANCE)
+                # build tracks
+                track = [None]*steps # mutable
+                track[0] = fromWP
+                track[steps-1] = toWP
+                latDelta = (toWP[0]-fromWP[0])/(steps-1)
+                lngDelta = (toWP[1]-fromWP[1])/(steps-1)
+                for i in range(1, steps-1):
+                    prvs = track[i-1]
+                    lat = prvs[0]+latDelta
+                    lng = prvs[1]+lngDelta
+                    track[i] = (lat, lng)
+                return track
+            else:
+                logging.critical('Waypoint is out of scope: '+str(toWP))
+                return []
         else:
+            logging.critical('Waypoint is out of scope: '+str(fromWP))
             return []
 
 
     def build_route(self, route_name: str, waypoints: list):
         """
-        build the tracks for the route defined in 'waypoints'
-        list of tuples (lat, lon)
+        build the tracks for the route defined in 'waypoints',
+        which is a list of waypoint tuples (lat, lon)
         """
         route = {
             "name": route_name,
+            "waypoints": waypoints,
             "tracks": []
         }
         prvsWP = None
