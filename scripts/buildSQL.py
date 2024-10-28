@@ -73,7 +73,7 @@ with SQL(XDBPATH) as sqldb:
     sqldb.set_col_headers(xyz.col_headers)
     logging.debug('Built column headers.')
     #
-    sqldb.set_matrix(xyz.matrix, XYZPATH, xyz.bounding_box)
+    sqldb.set_rows(xyz.matrix, XYZPATH, xyz.bounding_box)
     logging.debug('Built matrix rows.')
     #
     sqldb.set_metadata(XYZPATH, xyz.bounding_box)

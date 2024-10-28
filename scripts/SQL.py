@@ -8,6 +8,7 @@
 import sqlite3
 import logging
 import pickle
+import json
 from sqlite3.dbapi2 import Connection, Cursor
 
 class SQL:
@@ -17,11 +18,20 @@ class SQL:
         Initialize the SQL database 
         """
         self.dbpath = dbpath # location and name of database file
+        #
+        # initialize local values as empty
+        self.local_value = False
+        self.local_col_headers = [] # empty list
+        self.local_col_span = 0.0
+        self.local_row_headers = [] # empty list
+        self.local_row_span = 0.0
+        self.local_bounding_box = {} # empty dictionary
+        #
         # build database
         self.conn: Connection = sqlite3.connect(dbpath)
         cursor: Cursor = self.conn.cursor()
         try:
-            # create table ...
+            # create tables ...
             cursor.executescript("""
                 CREATE TABLE IF NOT EXISTS main.colhdrs(
                   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -136,9 +146,9 @@ class SQL:
             return rslt
 
     # matrix ========
-    def set_matrix(self, matrix: list, tilepath: str, tileinfo: str):
+    def set_rows(self, matrix: list, tilepath: str, tileinfo: str):
         """
-        set matrix, all rows
+        set all rows in matrix
         """
         try:
             self._delete_rows("main.rows")
@@ -153,6 +163,22 @@ class SQL:
             logging.error("SQLite INSERT TABLE rows error occurred:" + e.args[0])
         pass
 
+    def get_row(self, rowId):
+        """
+        get one row of the matrix
+        """
+        try:
+            sql = "SELECT * FROM main.rows WHERE ID = ?;"
+            cursor: Cursor = self.conn.cursor()
+            cursor.execute(sql, (rowId, ))
+            rslt = cursor.fetchone()[1]
+        except sqlite3.Error as e:
+            logging.error("SQLite SELECT TABLE rows error occurred:" + e.args[0])
+            rslt = []
+        finally:
+            return rslt
+
+    # metadata ========
     def set_metadata(self, tilepath: str, tileinfo: str):
         """
         set metadata
@@ -183,20 +209,66 @@ class SQL:
         finally:
             return rslt # tuple, ('path', 'info')
 
-    def get_matrix_row(self, rowId: int):
+    # elevation data ========
+    def _init_local_values(self, lat: float, long: float):
         """
-        set matrix, one row with a binary list
+        Initialize local values (for get_nearest_neighbour)
         """
-        raise Exception('WORK IN PROGRESS')
+        self.local_row_headers = self.get_row_headers()
+        self.local_col_headers = self.get_col_headers()
+        metadata = self.get_metadata()
+        self.local_bounding_box = json.loads(metadata[1])
+        self.local_row_span = self.local_bounding_box["top"]-self.local_bounding_box["bottom"]
+        self.local_col_span = self.local_bounding_box["left"]-self.local_bounding_box["right"]
+        self.local_value = True
+
+    def _inScope(self, lat: float, long: float):
+        """
+        Check if lat, long is in scope (inside bounding box)
+        """
+        return True
+
+    def _getX(self, idx: float):
+        """
+        Get the latitude for the id
+        """
+        id = round(idx)
+        return self.local_row_headers[id]
+
+    def _getY(self, idy: float):
+        """
+        Get the longitude for the id
+        """
+        id = round(idy)
+        return self.local_col_headers[id]
 
     def get_nearest_neighbor(self, lat: float, long: float):
         """ 
-        get nearest xy cell value (z) from database matrix
-        where: x == long, y == lat
+        get nearest xy cell value (z, elevation profile data) from the database matrix
+        where: x == long, y == lat, returns the elevation in meters (-1 is error)
+        NOTE: simplest methode (slow)
         """
-        return 417
+        if not self.local_value: 
+            self._init_local_values(lat, long)
+        if not self._inScope(lat, long):
+            logging.warning("Query for 'nearest neighbour' is out of scope: ("+str(lat)+", "+str(long)+")")
+            return { "elevtn":-1, "rowId": -1, "colId": -1 }
+        try:
+            idLat = (self.local_bounding_box["top"]-lat)/self.local_row_span*len(self.local_row_headers)
+            rowId = round(idLat)
+            idLong = (self.local_bounding_box["left"]-long)/self.local_col_span*len(self.local_col_headers)
+            colId = round(idLong)
+            # get binary elevation data 
+            row = self.get_row(rowId)
+            col2 = 2*colId
+            bytes = row[col2:col2+2]
+            elevation = int.from_bytes(bytes, "big")
+            return { "elevtn":elevation, "rowId": rowId, "colId": colId }
+        except Exception as err:
+            logging.error("Get nearest neighbour error: "+err.args)
+            return { "elevtn":-1, "rowId": -1, "colId": -1 }
 
 # main ========
 
 if __name__ == '__main__':
-    print("This SQL class module shall not be invoked on it's own.")
+    print("The SQL class module shall not be invoked on it's own.")
