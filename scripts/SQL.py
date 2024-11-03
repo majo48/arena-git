@@ -10,6 +10,7 @@ import logging
 import pickle
 import json
 from sqlite3.dbapi2 import Connection, Cursor
+from Cache import Cache
 
 class SQL:
 
@@ -18,14 +19,7 @@ class SQL:
         Initialize the SQL database 
         """
         self.dbpath = dbpath # location and name of database file
-        #
-        # initialize local values as empty
-        self.local_value = False
-        self.local_col_headers = [] # empty list
-        self.local_col_span = 0.0
-        self.local_row_headers = [] # empty list
-        self.local_row_span = 0.0
-        self.local_bounding_box = {} # empty dictionary
+        self.cache = Cache() # empty cache and bounding box
         #
         # build database
         self.conn: Connection = sqlite3.connect(dbpath)
@@ -70,6 +64,8 @@ class SQL:
         """
         # close connection
         self.conn.close()
+        # close cache
+        del self.cache
 
     # common functions ========
 
@@ -167,16 +163,19 @@ class SQL:
         """
         get one row of the matrix
         """
-        try:
-            sql = "SELECT * FROM main.rows WHERE ID = ?;"
-            cursor: Cursor = self.conn.cursor()
-            cursor.execute(sql, (rowId, ))
-            rslt = cursor.fetchone()[1]
-        except sqlite3.Error as e:
-            logging.error("SQLite SELECT TABLE rows error occurred:" + e.args[0])
-            rslt = []
-        finally:
-            return rslt
+        rslt = self.cache.getRowFromCache(rowId)
+        if not rslt: 
+            # empty list, not in cache
+            try:
+                sql = "SELECT * FROM main.rows WHERE ID = ?;"
+                cursor: Cursor = self.conn.cursor()
+                cursor.execute(sql, (rowId, ))
+                rslt = cursor.fetchone()[1]
+                self.cache.addRowToCache(rowId, rslt)
+            except sqlite3.Error as e:
+                logging.error("SQLite SELECT TABLE rows error occurred:" + e.args[0])
+                rslt = []
+        return rslt
 
     # metadata ========
     def set_metadata(self, tilepath: str, tileinfo: str):
@@ -210,24 +209,6 @@ class SQL:
             return rslt # tuple, ('path', 'info')
 
     # elevation data ========
-    def _init_local_values(self, lat: float, long: float):
-        """
-        Initialize local values (for get_nearest_neighbour)
-        """
-        self.local_row_headers = self.get_row_headers()
-        self.local_col_headers = self.get_col_headers()
-        metadata = self.get_metadata()
-        self.local_bounding_box = json.loads(metadata[1])
-        self.local_row_span = self.local_bounding_box["top"]-self.local_bounding_box["bottom"]
-        self.local_col_span = self.local_bounding_box["left"]-self.local_bounding_box["right"]
-        self.local_value = True
-
-    def _inScope(self, lat: float, long: float):
-        """
-        Check if lat, long is in scope (inside bounding box)
-        """
-        return True
-
     def _getX(self, idx: float):
         """
         Get the latitude for the id
@@ -246,21 +227,21 @@ class SQL:
         """ 
         get nearest xy cell value (z, elevation profile data) from the database matrix
         where: x == long, y == lat, returns the elevation in meters (-1 is error)
-        NOTE: simplest methode (slow)
         """
-        if not self.local_value: 
-            self._init_local_values(lat, long)
-        if not self._inScope(lat, long):
+        if self.cache.isEmpty(): 
+            self.cache.loadr(
+                self.get_col_headers(),
+                self.get_row_headers(),
+                json.loads(self.get_metadata()[1])
+            )
+        if not self.cache.inScope(lat, long):
             logging.warning("Query for 'nearest neighbour' is out of scope: ("+str(lat)+", "+str(long)+")")
             return { "elevtn":-1, "rowId": -1, "colId": -1 }
         try:
-            idLat = (self.local_bounding_box["top"]-lat)/self.local_row_span*len(self.local_row_headers)
-            rowId = round(idLat)
-            idLong = (self.local_bounding_box["left"]-long)/self.local_col_span*len(self.local_col_headers)
-            colId = round(idLong)
             # get binary elevation data 
-            row = self.get_row(rowId)
-            col2 = 2*colId
+            rowId, colId = self.cache.getDimensions(lat, long)
+            row = self.get_row(rowId) # row data (binary)
+            col2 = 2*colId # offset in row
             bytes = row[col2:col2+2]
             elevation = int.from_bytes(bytes, "big")
             return { "elevtn":elevation, "rowId": rowId, "colId": colId }
