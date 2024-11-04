@@ -38,9 +38,11 @@ class Cache:
         self.row_headers = row_headers   # list of floating vars
         self.bounding_box = bounding_box # dictionary var
         self.row_span = round(self.bounding_box['top']-self.bounding_box['bottom']) # floating var
-        self.row_len = len(self.row_headers) # integer var
+        self.row_len = len(self.row_headers)                                        # integer var
+        self.row_fctr = self.row_len/self.row_span                                  # multiplication factor
         self.col_span = round(self.bounding_box['right']-self.bounding_box['left']) # floating var
-        self.col_len = len(self.col_headers) # integer var 
+        self.col_len = len(self.col_headers)                                        # integer var
+        self.col_fctr = self.col_len/self.col_span                                  # multiplication factor 
         self._vars_set = True
         pass
 
@@ -64,8 +66,8 @@ class Cache:
         """
         convert geoposition (lat, long) to array dimensions (row, col)
         """
-        rowId = round((self.bounding_box['top'] - lat)/self.row_span*self.row_len)
-        colId = round((long - self.bounding_box['left'])/self.col_span*self.col_len)
+        rowId = round((self.bounding_box['top'] - lat)*self.row_fctr)
+        colId = round((long - self.bounding_box['left'])*self.col_fctr)
         return rowId, colId
 
     # cache ========

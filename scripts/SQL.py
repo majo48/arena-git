@@ -161,7 +161,7 @@ class SQL:
 
     def get_row(self, rowId):
         """
-        get one row of the matrix
+        get one row from the matrix
         """
         rslt = self.cache.getRowFromCache(rowId)
         if not rslt: 
@@ -223,17 +223,24 @@ class SQL:
         id = round(idy)
         return self.local_col_headers[id]
 
+    def _loadr(self):
+        """
+        Load cache with starting values
+        """
+        self.cache.loadr(
+                self.get_col_headers(),
+                self.get_row_headers(),
+                json.loads(self.get_metadata()[1])
+        )
+        pass
+
     def get_nearest_neighbor(self, lat: float, long: float):
         """ 
         get nearest xy cell value (z, elevation profile data) from the database matrix
         where: x == long, y == lat, returns the elevation in meters (-1 is error)
         """
         if self.cache.isEmpty(): 
-            self.cache.loadr(
-                self.get_col_headers(),
-                self.get_row_headers(),
-                json.loads(self.get_metadata()[1])
-            )
+            self._loadr()
         if not self.cache.inScope(lat, long):
             logging.warning("Query for 'nearest neighbour' is out of scope: ("+str(lat)+", "+str(long)+")")
             return { "elevtn":-1, "rowId": -1, "colId": -1 }
