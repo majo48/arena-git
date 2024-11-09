@@ -34,10 +34,10 @@ with SQL(XDBPATH) as sqldb:
     route = Route(json.loads(metadata[1]))
     waypoints = [ cityZug, cityBaar, cityCham ]
     tracks = route.build_route('Zug-Baar-Cham', waypoints)
-    prvsTrack = None
     #
     # test equidistant tracks
     print("Track-point information:")
+    prvsTrack = None
     for track in tracks["tracks"]:
         sTrack = '('+f'{track[0]:.6f}'+', '+f'{track[1]:.6f}'+')'
         if prvsTrack == None:
@@ -51,7 +51,6 @@ with SQL(XDBPATH) as sqldb:
     print("Meters above sea level:")
     for track in tracks["tracks"]:
         masl = sqldb.get_nearest_neighbor(track[0], track[1])
-        print('track: ('+f'{track[0]:.6f}'+', '+f'{track[1]:.6f}'+', elevation: '+str(masl)+')'
-        )
+        print(  'track: ('+f'{track[0]:.6f}'+', '+f'{track[1]:.6f}'+', elevation: '+str(masl)+')')
     pass
 logging.debug('End unit test for database.')

@@ -2,7 +2,7 @@
 Cache for rows of elevations, in order to speed up 'nearest_neighbour' queries
 Contains also other variables apart from matrix rows
 """
-MAXLENCACHE = 3 # max number of items in the cache
+MAXLENCACHE = 10 # max number of items in the cache
 
 
 class Cache:

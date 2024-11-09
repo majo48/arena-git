@@ -6,10 +6,11 @@
 """
 
 import sqlite3
+from sqlite3.dbapi2 import Connection, Cursor
 import logging
 import pickle
 import json
-from sqlite3.dbapi2 import Connection, Cursor
+import math
 from Cache import Cache
 
 class SQL:
@@ -209,19 +210,27 @@ class SQL:
             return rslt # tuple, ('path', 'info')
 
     # elevation data ========
-    def _getX(self, idx: float):
+    def _getLat(self, rowId: int):
         """
-        Get the latitude for the id
+        Get the latitude which corresponds with the id
         """
-        id = round(idx)
-        return self.local_row_headers[id]
+        return self.local_row_headers[rowId]
 
-    def _getY(self, idy: float):
+    def _getLong(self, colId: int):
         """
-        Get the longitude for the id
+        Get the longitude which corresponds with the id
         """
-        id = round(idy)
-        return self.local_col_headers[id]
+        return self.local_col_headers[colId]
+
+    def _get_distance(self, point1, point2):
+        """
+        Use the pythagoras formula to calculate distance between two points.
+        Each point is a (lat, long) tuple, the distance is in degrees.
+        Not exact, but sufficiant for weighting elevations.
+        """
+        a = point1[0]-point2[0] # lat difference
+        b = point1[1]-point2[1] # long difference
+        return math.sqrt(a**2 + b**2) 
 
     def _loadr(self):
         """
@@ -234,6 +243,27 @@ class SQL:
         )
         pass
 
+    def _get_cell(self, rowId, colId):
+        """ 
+        get the cell value (z, elevation) from the database matrix
+        with rowId (y, lat) and colId (X, long)
+        returns the elevation in meters (-1 is error)
+        """
+        try:
+            # get binary elevation data 
+            row = self.get_row(rowId) # row data (binary)
+            col2 = 2*colId # offset in row
+            bytes = row[col2:col2+2]
+            elevation = int.from_bytes(bytes, "big")
+            return { 
+                "elevtn":elevation, 
+                "rowId": rowId, "colId": colId, 
+                "lat": self._getLat(rowId), "long": self._getLong(colId) 
+            }
+        except Exception as err:
+            logging.error("Get matrix cell error: "+err.args)
+            return {} # empty
+
     def get_nearest_neighbor(self, lat: float, long: float):
         """ 
         get nearest xy cell value (z, elevation profile data) from the database matrix
@@ -243,19 +273,63 @@ class SQL:
             self._loadr()
         if not self.cache.inScope(lat, long):
             logging.warning("Query for 'nearest neighbour' is out of scope: ("+str(lat)+", "+str(long)+")")
-            return { "elevtn":-1, "rowId": -1, "colId": -1 }
+            return {} # empty
         try:
-            # get binary elevation data 
             rowId, colId = self.cache.getDimensions(lat, long)
-            row = self.get_row(rowId) # row data (binary)
-            col2 = 2*colId # offset in row
-            bytes = row[col2:col2+2]
-            elevation = int.from_bytes(bytes, "big")
-            return { "elevtn":elevation, "rowId": rowId, "colId": colId }
+            return self._get_cell( rowId, colId)
         except Exception as err:
             logging.error("Get nearest neighbour error: "+err.args)
-            return { "elevtn":-1, "rowId": -1, "colId": -1 }
+            return {} # empty
 
+    def get_weighted_elevation(self, lat: float, long: float):
+        """
+        Get the weighted elevation in meters, using nine cells: 
+            nearest, north, south, west, east, northwest, northeast, southwest, southeast 
+        """
+        nearest = self.get_nearest_neighbor(lat, long)
+        if not nearest: # empty
+            return -1   # error has already been logged
+        # get neighbouring cells (spaced 90 meters apart)
+        try:
+            # same row as nearest
+            west = self._get_cell( nearest["rowId"], nearest["colId"]-1 )
+            east = self._get_cell( nearest["rowId"], nearest["colId"]+1 )
+            # upper row
+            north = self._get_cell( nearest["rowId"]+1, nearest["colId"] )
+            northwest = self._get_cell( nearest["rowId"]+1, nearest["colId"]-1 )
+            northeast = self._get_cell( nearest["rowId"]+1, nearest["colId"]+1 )
+            # lower row
+            south = self._get_cell( nearest["rowId"]-1, nearest["colId"] )
+            southwest = self._get_cell( nearest["rowId"]-1, nearest["colId"]-1 )
+            southeast = self._get_cell( nearest["rowId"]-1, nearest["colId"]+1 )
+            # calculate weighted elevation, weighted by distance vectors
+            elevations_and_weights = [
+                (nearest["elevtn"], 1/self._get_distance( (lat, long), (nearest["lat"], nearest["long"]))),
+                (west["elevtn"], 1/self._get_distance( (lat, long), (west["lat"], west["long"]))),
+                (east["elevtn"], 1/self._get_distance( (lat, long), (east["lat"], east["long"]))),
+                (north["elevtn"], 1/self._get_distance( (lat, long), (north["lat"], north["long"]))),
+                (northwest["elevtn"], 1/self._get_distance( (lat, long), (northwest["lat"], northwest["long"]))),
+                (northeast["elevtn"], 1/self._get_distance( (lat, long), (northeast["lat"], northeast["long"]))),
+                (south["elevtn"], 1/self._get_distance( (lat, long), (south["lat"], south["long"]))),
+                (southwest["elevtn"], 1/self._get_distance( (lat, long), (southwest["lat"], southwest["long"]))),
+                (southeast["elevtn"], 1/self._get_distance( (lat, long), (southeast["lat"], southeast["long"])))
+            ]
+            sum_weights = 0.0
+            sum_products = 0.0
+            for eaw in elevations_and_weights:
+                sum_weights += eaw[1]
+                sum_products += eaw[0]*eaw[1]
+            weighted_elevation = sum_products / sum_weights
+            return int(weighted_elevation)
+        except ZeroDivisionError as err:
+            logging.error("Get weighted elevation zero division error: "+err.args)
+        except LookupError as err:
+            logging.error("Get weighted elevation look up error: "+err.args)
+        except Exception as err:
+            logging.error("Get weighted elevation unknown error: "+err.args)
+        finally:
+            return nearest["elevtn"] # The best possible and probable answer
+        
 # main ========
 
 if __name__ == '__main__':
