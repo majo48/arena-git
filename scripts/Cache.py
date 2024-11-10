@@ -14,8 +14,8 @@ class Cache:
         """
         # local variables
         self._vars_set = False 
-        self.col_headers = []  # empty list
         self.row_headers = []  # empty list
+        self.col_headers = []  # empty list
         self.bounding_box = {} # empty dictionary 
         self.row_span = 0.0    # floating var
         self.row_len = 0       # integer var
@@ -30,12 +30,12 @@ class Cache:
         """
         return not self._vars_set
 
-    def loadr(self, col_headers, row_headers, bounding_box):
+    def loadr(self, row_headers, col_headers, bounding_box):
         """
-        set (local) variables for the first usage
+        set (local) variables for the first 'external' usage
         """
-        self.col_headers = col_headers   # list of floating vars
-        self.row_headers = row_headers   # list of floating vars
+        self.row_headers = row_headers
+        self.col_headers = col_headers
         self.bounding_box = bounding_box # dictionary var
         self.row_span = round(self.bounding_box['top']-self.bounding_box['bottom']) # floating var
         self.row_len = len(self.row_headers)                                        # integer var
@@ -72,6 +72,18 @@ class Cache:
 
     # cache ========
 
+    def get_row_headers(self):
+        """
+        get row headers from cache
+        """
+        return self.row_headers
+    
+    def get_col_headers(self):
+        """
+        get col headers from cache
+        """
+        return self.col_headers
+    
     def getRowFromCache(self, rowId):
         """
         get row[rowId] from the cache, else row is empty

@@ -99,16 +99,17 @@ class SQL:
         """
         get pickeled row headers (latitudes aka Y, values ascending)
         """
-        try:
-            sql = "SELECT rowhdrs FROM main.rowhdrs ORDER BY id DESC LIMIT 1;"
-            cursor: Cursor = self.conn.cursor()
-            cursor.execute(sql)
-            rslt = pickle.loads(cursor.fetchone()[0]) # deserialize row headers
-        except sqlite3.Error as e:
-            logging.error("SQLite SELECT TABLE rowhdrs error occurred:" + e.args[0])
-            rslt = []
-        finally:
-            return rslt
+        rslt = self.cache.get_row_headers()
+        if not rslt: # empty cache
+            try:
+                sql = "SELECT rowhdrs FROM main.rowhdrs ORDER BY id DESC LIMIT 1;"
+                cursor: Cursor = self.conn.cursor()
+                cursor.execute(sql)
+                rslt = pickle.loads(cursor.fetchone()[0]) # deserialize row headers
+            except sqlite3.Error as e:
+                logging.error("SQLite SELECT TABLE rowhdrs error occurred:" + e.args[0])
+                rslt = []
+        return rslt
 
     # column headers ========
 
@@ -131,16 +132,17 @@ class SQL:
         """
         get pickeled column headers (longitudes aka X, aka values ascending)
         """
-        try:
-            sql = "SELECT colhdrs FROM main.colhdrs ORDER BY id DESC LIMIT 1;"
-            cursor: Cursor = self.conn.cursor()
-            cursor.execute(sql)
-            rslt = pickle.loads(cursor.fetchone()[0]) # deserialize column headers
-        except sqlite3.Error as e:
-            logging.error("SQLite SELECT TABLE colhdrs error occurred:" + e.args[0])
-            rslt = []
-        finally:
-            return rslt
+        rslt = self.cache.get_col_headers()
+        if not rslt: # empty cache
+            try:
+                sql = "SELECT colhdrs FROM main.colhdrs ORDER BY id DESC LIMIT 1;"
+                cursor: Cursor = self.conn.cursor()
+                cursor.execute(sql)
+                rslt = pickle.loads(cursor.fetchone()[0]) # deserialize column headers
+            except sqlite3.Error as e:
+                logging.error("SQLite SELECT TABLE colhdrs error occurred:" + e.args[0])
+                rslt = []
+        return rslt
 
     # matrix ========
     def set_rows(self, matrix: list, tilepath: str, tileinfo: str):
@@ -165,8 +167,7 @@ class SQL:
         get one row from the matrix
         """
         rslt = self.cache.getRowFromCache(rowId)
-        if not rslt: 
-            # empty list, not in cache
+        if not rslt: # empty cache
             try:
                 sql = "SELECT * FROM main.rows WHERE ID = ?;"
                 cursor: Cursor = self.conn.cursor()
@@ -214,17 +215,17 @@ class SQL:
         """
         Get the latitude which corresponds with the id
         """
-        return self.local_row_headers[rowId]
+        return self.get_row_headers()[rowId]
 
     def _getLong(self, colId: int):
         """
         Get the longitude which corresponds with the id
         """
-        return self.local_col_headers[colId]
+        return self.get_col_headers()[colId]
 
     def _get_distance(self, point1, point2):
         """
-        Use the pythagoras formula to calculate distance between two points.
+        Use the pythagoras formula to calculate approx. distance between two points.
         Each point is a (lat, long) tuple, the distance is in degrees.
         Not exact, but sufficiant for weighting elevations.
         """
