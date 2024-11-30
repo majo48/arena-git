@@ -23,11 +23,13 @@ class BoundingBox:
         """
             Valid for Western Europe & Asia only (ex. UK, Spain) 
         """
+        # round parameters to multiples of one degree
         self.top = math.ceil(top)
         self.bottom = math.floor(bottom)
         self.left = math.floor(left)
         self.right = math.ceil(right)
-        self.names = []
+        # other values
+        self.tilenames = []
         self.number_of_tiles = (self.top-self.bottom)*(self.right-self.left)
         self.set_names()
 
@@ -42,7 +44,7 @@ class BoundingBox:
                 northing = "N"+self.leading_zeros(row, 2)+"_00"
                 easting = "E"+self.leading_zeros(col, 3)+"_00"
                 fldr = "Copernicus_DSM_COG_30_"+northing+"_"+easting+"_DEM"
-                self.names.append({
+                self.tilenames.append({
                     "top": row+1, "bottom": row, "left": col, "right": col+1, 
                     "fldr": fldr
                     })
