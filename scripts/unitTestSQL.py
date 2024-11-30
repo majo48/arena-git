@@ -6,6 +6,7 @@
 
 from SQL import SQL
 from Route import Route
+from Cache import Cache
 import json
 import logging
 
@@ -27,32 +28,18 @@ citySeon = (47.34673, 8.16113)          # (lat, long)
 # main ========
 
 logging.debug('Begin unit test for database.')
-with SQL(XDBPATH) as sqldb:
+with Cache(XDBPATH) as cache:
     #
     # create test route, waypoints and tracks
-    metadata = sqldb.get_metadata()
+    metadata = cache.sqldb.get_metadata()
     route = Route(json.loads(metadata[1]))
     waypoints = [ cityZug, cityBaar, cityCham ]
     tracks = route.build_route('Zug-Baar-Cham', waypoints)
     #
-    # test equidistant tracks
-    print("Track-point information:")
-    prvsTrack = None
-    for track in tracks["tracks"]:
-        sTrack = '('+f'{track[0]:.6f}'+', '+f'{track[1]:.6f}'+')'
-        if prvsTrack == None:
-            print('track: '+sTrack+', 1st waypoint')
-        else:
-            dstnc = int(route.calc_distance(prvsTrack, track))
-            print('track: '+sTrack+', distance: '+str(dstnc))            
-        prvsTrack = track
-    #
     # test database elevation profile
     print("Meters above sea level:")
     for track in tracks["tracks"]:
-        masl = sqldb.get_nearest_neighbor(track[0], track[1])
+        masl = cache.get_nearest_neighbor(track[0], track[1]) # lat, long
         print(  'track: ('+f'{track[0]:.6f}'+', '+f'{track[1]:.6f}'+', elevation: '+str(masl)+')')
-        # masl = sqldb.get_weighted_elevation(track[0], track[1])
-        # print( f'{track[0]:.6f}'+', '+f'{track[1]:.6f}'+', '+ str(masl) )
     pass
 logging.debug('End unit test for database.')
