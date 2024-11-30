@@ -12,16 +12,23 @@ class Cache:
         """
         Initialize the SQL cache
         """
-        # local variables
-        self._vars_set = False 
-        self.row_headers = []  # empty list
-        self.col_headers = []  # empty list
-        self.bounding_box = {} # empty dictionary 
-        self.row_span = 0.0    # floating var
-        self.row_len = 0       # integer var
-        self.col_span = 0.0    # floating var
-        self.col_len = 0       # integer var
-        self.cache = {}        # empty dictionary
+        self.set_empty(force=True )
+        pass
+
+    def set_empty(self, force=False):
+        """
+        set local variables as  invalid (empty)
+        """
+        if force or self._vars_set:
+            self._vars_set = False 
+            self.row_headers = []  # empty list
+            self.col_headers = []  # empty list
+            self.bounding_box = {} # empty dictionary 
+            self.row_span = 0.0    # floating var
+            self.row_len = 0       # integer var
+            self.col_span = 0.0    # floating var
+            self.col_len = 0       # integer var
+            self.cache = {}        # empty dictionary
         pass
 
     def isEmpty(self):
