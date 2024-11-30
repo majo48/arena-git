@@ -52,5 +52,7 @@ with SQL(XDBPATH) as sqldb:
     for track in tracks["tracks"]:
         masl = sqldb.get_nearest_neighbor(track[0], track[1])
         print(  'track: ('+f'{track[0]:.6f}'+', '+f'{track[1]:.6f}'+', elevation: '+str(masl)+')')
+        # masl = sqldb.get_weighted_elevation(track[0], track[1])
+        # print( f'{track[0]:.6f}'+', '+f'{track[1]:.6f}'+', '+ str(masl) )
     pass
 logging.debug('End unit test for database.')

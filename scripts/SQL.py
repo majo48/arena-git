@@ -11,6 +11,7 @@ import logging
 import pickle
 import json
 import math
+from math import radians, sin, cos, acos
 from Cache import Cache
 
 class SQL:
@@ -91,6 +92,7 @@ class SQL:
             bData = pickle.dumps(row_headers, protocol=-1) # serialize row headers
             cursor.execute(sql, (bData,))
             self.conn.commit()
+            self.cache.set_empty() # invalidate cache
         except sqlite3.Error as e:
             logging.error("SQLite INSERT TABLE rowhdrs error occurred:" + e.args[0])
         pass
@@ -124,6 +126,7 @@ class SQL:
             bData = pickle.dumps(col_headers, protocol=-1) # serialize column headers
             cursor.execute(sql, (bData,))
             self.conn.commit()
+            self.cache.set_empty() # invalidate cache
         except sqlite3.Error as e:
             logging.error("SQLite INSERT TABLE colhdrs error occurred:" + e.args[0])
         pass
@@ -158,6 +161,7 @@ class SQL:
                 cursor.execute(sql, (idx, matrix[idx]))
                 self.conn.commit()
             pass
+            self.cache.set_empty() # invalidate cache
         except sqlite3.Error as e:
             logging.error("SQLite INSERT TABLE rows error occurred:" + e.args[0])
         pass
@@ -190,7 +194,7 @@ class SQL:
             cursor: Cursor = self.conn.cursor()
             cursor.execute(sql, (tilepath, tileinfo))
             self.conn.commit()
-            pass
+            self.cache.set_empty() # invalidate cache
         except sqlite3.Error as e:
             logging.error("SQLite INSERT TABLE metadata error occurred:" + e.args[0])
         pass
@@ -223,7 +227,7 @@ class SQL:
         """
         return self.get_col_headers()[colId]
 
-    def _get_distance(self, point1, point2):
+    def _get_distance_old(self, point1, point2):
         """
         Use the pythagoras formula to calculate approx. distance between two points.
         Each point is a (lat, long) tuple, the distance is in degrees.
@@ -232,6 +236,17 @@ class SQL:
         a = point1[0]-point2[0] # lat difference
         b = point1[1]-point2[1] # long difference
         return math.sqrt(a**2 + b**2) 
+
+    def _get_distance(self, fromPlace: tuple, toPlace: tuple):
+        """
+        Calculate the distance (in meters) between two points on the globe (haversine formula)
+        """
+        mlat = radians(fromPlace[0])
+        mlon = radians(fromPlace[1])
+        plat = radians(toPlace[0])
+        plon = radians(toPlace[1])
+        dist = 6371.01 * acos(sin(mlat)*sin(plat) + cos(mlat)*cos(plat)*cos(mlon - plon))
+        return int(dist*1000) # distance in meters
 
     def _loadr(self):
         """
@@ -305,21 +320,21 @@ class SQL:
             southeast = self._get_cell( nearest["rowId"]-1, nearest["colId"]+1 )
             # calculate weighted elevation, weighted by distance vectors
             elevations_and_weights = [
-                (nearest["elevtn"], 1/self._get_distance( (lat, long), (nearest["lat"], nearest["long"]))),
-                (west["elevtn"], 1/self._get_distance( (lat, long), (west["lat"], west["long"]))),
-                (east["elevtn"], 1/self._get_distance( (lat, long), (east["lat"], east["long"]))),
-                (north["elevtn"], 1/self._get_distance( (lat, long), (north["lat"], north["long"]))),
-                (northwest["elevtn"], 1/self._get_distance( (lat, long), (northwest["lat"], northwest["long"]))),
-                (northeast["elevtn"], 1/self._get_distance( (lat, long), (northeast["lat"], northeast["long"]))),
-                (south["elevtn"], 1/self._get_distance( (lat, long), (south["lat"], south["long"]))),
-                (southwest["elevtn"], 1/self._get_distance( (lat, long), (southwest["lat"], southwest["long"]))),
-                (southeast["elevtn"], 1/self._get_distance( (lat, long), (southeast["lat"], southeast["long"])))
+                (nearest["elevtn"], self._get_distance( (lat, long), (nearest["lat"], nearest["long"]))),
+                (west["elevtn"], self._get_distance( (lat, long), (west["lat"], west["long"]))),
+                (east["elevtn"], self._get_distance( (lat, long), (east["lat"], east["long"]))),
+                (north["elevtn"], self._get_distance( (lat, long), (north["lat"], north["long"]))),
+                (northwest["elevtn"], self._get_distance( (lat, long), (northwest["lat"], northwest["long"]))),
+                (northeast["elevtn"], self._get_distance( (lat, long), (northeast["lat"], northeast["long"]))),
+                (south["elevtn"], self._get_distance( (lat, long), (south["lat"], south["long"]))),
+                (southwest["elevtn"], self._get_distance( (lat, long), (southwest["lat"], southwest["long"]))),
+                (southeast["elevtn"], self._get_distance( (lat, long), (southeast["lat"], southeast["long"])))
             ]
             sum_weights = 0.0
             sum_products = 0.0
             for eaw in elevations_and_weights:
-                sum_weights += eaw[1]
-                sum_products += eaw[0]*eaw[1]
+                sum_weights += 1/eaw[1]
+                sum_products += eaw[0]/eaw[1]
             weighted_elevation = sum_products / sum_weights
             return int(weighted_elevation)
         except ZeroDivisionError as err:
