@@ -52,7 +52,7 @@ bb = BoundingBox(48.000, 47.000, 8.000, 9.000)
 
 print("Bounding Box:", bb.top, bb.bottom, bb.left, bb.right)
 print("Tiles:", str(bb.number_of_tiles))
-for name in bb.names:
+for name in bb.tilenames:
     tilename = name["fldr"]
     print("Tile:", tilename)
     get_tile(tilename)
