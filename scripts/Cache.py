@@ -12,6 +12,11 @@ from math import radians, sin, cos, acos
 
 # constants
 MAXLENCACHE = 10 # max number of items in the cache
+NEXTCELLS = {
+    "NW":(1,-1), "N":(1,0), "NE":(1,1), 
+    "W":(0,-1), "E":(0,1), 
+    "SW":(-1,-1), "S":(-1,0), "SE":(-1,1)
+}
 
 
 class Cache:
@@ -31,6 +36,7 @@ class Cache:
         self.col_len = len(self.col_headers)                                        # integer var
         self.col_fctr = self.col_len/self.col_span                                  # multiplication factor 
         self.cache = {}                                                             # dictionary with unpickeled rows
+        self.last_position = None                                                   # tuple (lat, long) or None
         pass
 
     # context manager ========
@@ -118,16 +124,6 @@ class Cache:
         """
         return self.col_headers[colId]
 
-    def _get_distance_old(self, point1, point2):
-        """
-        Use the pythagoras formula to calculate approx. distance between two points.
-        Each point is a (lat, long) tuple, the distance is in degrees.
-        Not exact, but sufficiant for weighting elevations.
-        """
-        a = point1[0]-point2[0] # lat difference
-        b = point1[1]-point2[1] # long difference
-        return math.sqrt(a**2 + b**2) 
-
     def _get_distance(self, fromPlace: tuple, toPlace: tuple):
         """
         Calculate the distance (in meters) between two points on the globe (haversine formula)
@@ -139,9 +135,9 @@ class Cache:
         dist = 6371.01 * acos(sin(mlat)*sin(plat) + cos(mlat)*cos(plat)*cos(mlon - plon))
         return int(dist*1000) # distance in meters
 
-    def _get_cell(self, rowId, colId):
+    def _get_elevation(self, rowId, colId):
         """ 
-        get the cell value (z, elevation) from the database matrix
+        Get the cell value (z, elevation) from the database matrix
         with rowId (y, lat) and colId (X, long)
         returns the elevation in meters (-1 is error)
         """
@@ -160,68 +156,111 @@ class Cache:
             logging.error("Get matrix cell error: "+err.args)
             return {} # empty
 
-    def get_nearest_neighbor(self, lat: float, long: float):
+    def _get_direction(self, lat, long):
+        """
+        Give the direction going from self.last_position to (lat, long)
+        """
+        if not self.last_position: # is empty
+            self.last_position = (lat, long)
+            return None, None
+        deltaX = long - self.last_position[1] # longitude
+        deltaY = lat - self.last_position[0]  # latitude
+        degrees_temp = math.atan2(deltaX, deltaY)/math.pi*180
+        if degrees_temp < 0:
+            degrees_final = 360 + degrees_temp
+        else:
+            degrees_final = degrees_temp
+        compass_brackets = ["N", "NE", "E", "SE", "S", "SW", "W", "NW", "N"]
+        compass_lookup = round(degrees_final / 45)
+        self.last_position = (lat, long) # save position
+        return compass_brackets[compass_lookup], degrees_final
+
+    def _get_nearest_elevation(self, lat: float, long: float):
         """ 
-        get nearest xy cell value (z, elevation profile data) from the database matrix
+        Get nearest xy cell value (z, elevation profile data) from the database matrix
         where: x == long, y == lat, returns the elevation in meters (-1 is error)
         """
         if not self.inScope(lat, long):
             logging.warning("Query for 'nearest neighbour' is out of scope: ("+str(lat)+", "+str(long)+")")
             return {} # empty
         try:
-            rowId, colId = self.getDimensions(lat, long)
-            return self._get_cell( rowId, colId)
+            rowId = round((self.bounding_box['top'] - lat)*self.row_fctr) # ordered descending
+            colId = round((long - self.bounding_box['left'])*self.col_fctr) # ordered ascending
+            return self._get_elevation(rowId, colId)
         except Exception as err:
             logging.error("Get nearest neighbour error: "+str(err.args))
             return {} # empty
 
-    def get_weighted_elevation(self, lat: float, long: float):
+    def get_elevation(self, lat: float, long: float):
         """
-        Get the weighted elevation in meters, using nine cells: 
-            nearest, north, south, west, east, northwest, northeast, southwest, southeast 
+        Get the elevation in meters (integer)
         """
-        nearest = self.get_nearest_neighbor(lat, long)
+        nearest = self._get_nearest_elevation(lat, long)
         if not nearest: # empty
             return -1   # error has already been logged
-        # get neighbouring cells (spaced 90 meters apart)
+        else:
+            return nearest["elevtn"]
+        
+    def get_flight_information(self, lat: float, long: float):
+        """
+        Get flight information:
+        - the elevation in meters (integer) of the current location, 
+        - the elevation of the next cell in flying direction, 
+        - the direction (N, S, E, W, NW, NE, SW, SE),
+        - the compass heading (0 .. 360 degrees).
+        Notes:
+            Each cell is 90 x 90 meters in the digital surface model (DSM).
+            The DSM does not include buildings, towers or other such objects.
+        """
+        nearest = self._get_nearest_elevation(lat, long)
+        if not nearest:   # empty
+            return -1, -1, None, None # error has already been logged
         try:
-            # same row as nearest
-            west = self._get_cell( nearest["rowId"], nearest["colId"]-1 )
-            east = self._get_cell( nearest["rowId"], nearest["colId"]+1 )
-            # upper row
-            north = self._get_cell( nearest["rowId"]+1, nearest["colId"] )
-            northwest = self._get_cell( nearest["rowId"]+1, nearest["colId"]-1 )
-            northeast = self._get_cell( nearest["rowId"]+1, nearest["colId"]+1 )
-            # lower row
-            south = self._get_cell( nearest["rowId"]-1, nearest["colId"] )
-            southwest = self._get_cell( nearest["rowId"]-1, nearest["colId"]-1 )
-            southeast = self._get_cell( nearest["rowId"]-1, nearest["colId"]+1 )
-            # calculate weighted elevation, weighted by distance vectors
-            elevations_and_weights = [
-                (nearest["elevtn"], self._get_distance( (lat, long), (nearest["lat"], nearest["long"]))),
-                (west["elevtn"], self._get_distance( (lat, long), (west["lat"], west["long"]))),
-                (east["elevtn"], self._get_distance( (lat, long), (east["lat"], east["long"]))),
-                (north["elevtn"], self._get_distance( (lat, long), (north["lat"], north["long"]))),
-                (northwest["elevtn"], self._get_distance( (lat, long), (northwest["lat"], northwest["long"]))),
-                (northeast["elevtn"], self._get_distance( (lat, long), (northeast["lat"], northeast["long"]))),
-                (south["elevtn"], self._get_distance( (lat, long), (south["lat"], south["long"]))),
-                (southwest["elevtn"], self._get_distance( (lat, long), (southwest["lat"], southwest["long"]))),
-                (southeast["elevtn"], self._get_distance( (lat, long), (southeast["lat"], southeast["long"])))
-            ]
-            sum_weights = 0.0
-            sum_products = 0.0
-            for eaw in elevations_and_weights:
-                sum_weights += 1/eaw[1]
-                sum_products += eaw[0]/eaw[1]
-            weighted_elevation = sum_products / sum_weights
-            return int(weighted_elevation)
-        except ZeroDivisionError as err:
-            logging.error("Get weighted elevation zero division error: "+err.args)
-        except LookupError as err:
-            logging.error("Get weighted elevation look up error: "+err.args)
+            currentElevation = nearest["elevtn"]
+            # get direction
+            direction, compass = self._get_direction(lat, long)
+            if not direction: # is empty
+                return currentElevation, currentElevation, None, None
+            # get next cell in flying direction
+            rowId = nearest["rowId"] + NEXTCELLS[direction][0]
+            colId = nearest["colId"] + NEXTCELLS[direction][1]
+            nextCell = self._get_elevation(rowId, colId)
+            nextElevation = nextCell["elevtn"]
+            return currentElevation, nextElevation, direction, round(compass, 2)
+        except Exception as err:
+            logging.error("Get elevations, unknown error: "+err.args)
+            return currentElevation, currentElevation, None, None
+
+
+    def get_weighted_elevation(self, lat: float, long: float):
+        """
+        Get the weighted elevation in meters (integer) 
+            This is NOT RECOMMENDED due to the fact that the algorithme does not 
+            contribute much more than one or two height meters to the result. 
+            Too much CPU time for such a small improvement of accuracy.
+        """
+        nearest = self._get_nearest_elevation(lat, long)
+        if not nearest: # empty
+            return -1   # error has already been logged
+        try:
+            # get direction
+            direction, compass = self._get_direction(lat, long)
+            if not direction: # is empty
+                return nearest["elevtn"]
+            # get next cell in flying direction
+            rowId = nearest["rowId"] + NEXTCELLS[direction][0]
+            colId = nearest["colId"] + NEXTCELLS[direction][1]
+            nextCell = self._get_elevation(rowId, colId)
+            # calculate weighted average
+            nearWeight = 1 / self._get_distance((lat, long), (nearest["lat"],nearest["long"]))
+            nextWeight = 1 / self._get_distance((lat, long), (nextCell["lat"],nextCell["long"]))
+            weights = nearWeight + nextWeight
+            weighted = nearest["elevtn"] * nearWeight + nextCell["elevtn"] * nextWeight
+            weightedaverage = weighted / weights
+            return round( weightedaverage ) # returns integer
+            #
         except Exception as err:
             logging.error("Get weighted elevation unknown error: "+err.args)
-        finally:
             return nearest["elevtn"] # The best possible and probable answer
 
 

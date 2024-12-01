@@ -39,7 +39,9 @@ with Cache(XDBPATH) as cache:
     # test database elevation profile
     print("Meters above sea level:")
     for track in tracks["tracks"]:
-        masl = cache.get_nearest_neighbor(track[0], track[1]) # lat, long
-        print(  'track: ('+f'{track[0]:.6f}'+', '+f'{track[1]:.6f}'+', elevation: '+str(masl)+')')
+        # masl = cache.get_elevation(track[0], track[1]) # lat, long
+        # print(  'track: ('+f'{track[0]:.6f}'+', '+f'{track[1]:.6f}'+', elevation: '+str(masl)+')')
+        elevation = cache.get_flight_information( track[0], track[1])
+        print(  f'{track[0]:.6f}'+', '+f'{track[1]:.6f}'+', '+str(elevation))
     pass
 logging.debug('End unit test for database.')
