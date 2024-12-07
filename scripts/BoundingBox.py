@@ -3,8 +3,8 @@
       Info (height x width): 1 x 1 degrees latitude, longitude
       COG  (height x width): 1200 x 1200 elements
       Folder Naming Conventions:
-        Copernicus_DSM_COG_[resolution]_[northing]_[easting]_DEM
-          resolution: 30
+        Copernicus_DSM_COG_[resolution]_[northing]_[easting]_00_DEM
+          resolution: 30 (should be 90, but isn't)
           northing: N47_00
           easting:  E009_00
           Name: COPERNICUS_DSM_COG_30_N47_00_E009_DEM
@@ -19,17 +19,18 @@
 import math
 
 class BoundingBox:
-    def __init__(self, top, bottom, left, right):
+    def __init__(self, north, south, west, east):
         """
             Valid for Western Europe & Asia only (ex. UK, Spain) 
         """
         # round parameters to multiples of one degree
-        self.top = math.ceil(top)
-        self.bottom = math.floor(bottom)
-        self.left = math.floor(left)
-        self.right = math.ceil(right)
+        self.top = math.ceil(north)
+        self.bottom = math.floor(south)
+        self.left = math.floor(west)
+        self.right = math.ceil(east)
         # other values
         self.tilenames = []
+        self.unittests = []
         self.number_of_tiles = (self.top-self.bottom)*(self.right-self.left)
         self.set_names()
 
@@ -51,6 +52,13 @@ class BoundingBox:
                 col += 1 # next up
             row += 1 # next right
         return
+
+    def set_unittests(self, unittests):
+        """
+        Set the list of random unit tests 
+        """
+        self.unittests = unittests
+        pass
 
     def leading_zeros(self, iVal, digits):
         """

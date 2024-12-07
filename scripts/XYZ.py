@@ -9,6 +9,7 @@ import sys
 import math
 import logging
 import json
+import random 
 
 # define elevation matrix for COG-90 (accuracy: < 4 meters)
 EDGE = 1200 # matrix height (cols) and width (rows), equals cell size of 90 x 90 meters
@@ -29,7 +30,9 @@ class XYZ:
                 col.append(255) # high byte (big endian)
                 col.append(255) # low byte  (big endian)
             self.matrix.append(col)
-        pass
+        # unit test values
+        self.uvalus = []
+        self.ucount = random.randrange(EDGE*100)
         # convert text file to database 
         self.bounding_box = self.set_cells(filename) 
 
@@ -68,7 +71,7 @@ class XYZ:
                         self.progress(cnt)
                     pass
                 pass
-            bb = self.get_bounding_box()
+            bb = self.get_bounding_box_string()
             pass
         except ValueError as err:
             logging.error(err.args)
@@ -105,6 +108,15 @@ class XYZ:
             # update matrix
             self.matrix[row][2*col] = z2b[0] # high byte, big endian
             self.matrix[row][2*col+1] = z2b[1] # low byte, big endian 
+
+            # update unit test
+            self.ucount -= 1 # decrement
+            if not self.ucount: # zero
+                self.uvalus.append({
+                    "rowId": row, "colId": col,
+                    "x": x, "y": y, "z": z
+                })
+                self.ucount = random.randrange(EDGE*100)
             quit = False
         #
         except ValueError as err:
@@ -113,15 +125,16 @@ class XYZ:
         finally:
             return quit
         
-    def get_bounding_box(self):
+    def get_bounding_box_string(self):
         """
-        Get the json representation of the bounding box of the matrix
+        Get the json formated string for the bounding box of the matrix
         """ 
         bb = { 
             "top": self.row_headers[0], 
             "bottom": self.row_headers[-1], 
             "left": self.col_headers[0], 
-            "right": self.col_headers[-1]
+            "right": self.col_headers[-1],
+            "unittests" : self.uvalus
         }
         return json.dumps(bb)
 
