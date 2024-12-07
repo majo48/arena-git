@@ -11,7 +11,7 @@ import logging
 import pickle
 
 
-class SQL:
+class Dbsql:
 
     def __init__(self, dbpath):
         """ 

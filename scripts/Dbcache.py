@@ -4,7 +4,7 @@ Contains also other variables apart from matrix rows
 """
 
 # packages
-from SQL import SQL
+from Dbsql import Dbsql
 import json
 import logging
 import math
@@ -19,16 +19,16 @@ NEXTCELLS = {
 }
 
 
-class Cache:
+class Dbcache:
     
     def __init__(self, dbpath):
         """
         Initialize the SQL cache
         """
-        self.sqldb = SQL(dbpath)
-        self.row_headers = self.sqldb.get_row_headers()
-        self.col_headers = self.sqldb.get_col_headers()
-        self.bounding_box = json.loads(self.sqldb.get_metadata()[1])
+        self.dbsql = Dbsql(dbpath)
+        self.row_headers = self.dbsql.get_row_headers()
+        self.col_headers = self.dbsql.get_col_headers()
+        self.bounding_box = json.loads(self.dbsql.get_metadata()[1])
         self.row_span = round(self.bounding_box['top']-self.bounding_box['bottom']) # floating var
         self.row_len = len(self.row_headers)                                        # integer var
         self.row_fctr = self.row_len/self.row_span                                  # multiplication factor
@@ -52,7 +52,7 @@ class Cache:
         context manager: end of session 
         """
         # close database
-        del self.sqldb
+        del self.dbsql
 
     # validate ========
 
@@ -106,7 +106,7 @@ class Cache:
         """
         rslt = self._getRowFromCache(rowId)
         if not rslt: # empty cache
-            rslt = self.sqldb.get_row(rowId)
+            rslt = self.dbsql.get_row(rowId)
             self._addRowToCache(rowId, rslt)
         return rslt
 
@@ -230,38 +230,6 @@ class Cache:
         except Exception as err:
             logging.error("Get elevations, unknown error: "+err.args)
             return currentElevation, currentElevation, None, None
-
-
-    def get_weighted_elevation(self, lat: float, long: float):
-        """
-        Get the weighted elevation in meters (integer) 
-            This is NOT RECOMMENDED due to the fact that the algorithme does not 
-            contribute much more than one or two height meters to the result. 
-            Too much CPU time for such a small improvement of accuracy.
-        """
-        nearest = self._get_nearest_elevation(lat, long)
-        if not nearest: # empty
-            return -1   # error has already been logged
-        try:
-            # get direction
-            direction, compass = self._get_direction(lat, long)
-            if not direction: # is empty
-                return nearest["elevtn"]
-            # get next cell in flying direction
-            rowId = nearest["rowId"] + NEXTCELLS[direction][0]
-            colId = nearest["colId"] + NEXTCELLS[direction][1]
-            nextCell = self._get_elevation(rowId, colId)
-            # calculate weighted average
-            nearWeight = 1 / self._get_distance((lat, long), (nearest["lat"],nearest["long"]))
-            nextWeight = 1 / self._get_distance((lat, long), (nextCell["lat"],nextCell["long"]))
-            weights = nearWeight + nextWeight
-            weighted = nearest["elevtn"] * nearWeight + nextCell["elevtn"] * nextWeight
-            weightedaverage = weighted / weights
-            return round( weightedaverage ) # returns integer
-            #
-        except Exception as err:
-            logging.error("Get weighted elevation unknown error: "+err.args)
-            return nearest["elevtn"] # The best possible and probable answer
 
 
 # main ========

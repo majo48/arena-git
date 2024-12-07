@@ -5,7 +5,7 @@
 """
 
 from XYZ import XYZ
-from SQL import SQL
+from scripts.Dbsql import Dbsql
 import logging
 import os
 import sys
@@ -62,7 +62,7 @@ logging.basicConfig(
 logging.debug('Start new logging session.')
 
 # convert text to database ====
-with SQL(XDBPATH) as sqldb:
+with Dbsql(XDBPATH) as sqldb:
     xyz = XYZ(XYZPATH)
     logging.debug('Finished building XYZ.')
     print("Building database, please wait ...")
