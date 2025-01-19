@@ -17,7 +17,13 @@ This application is hosted in a new development environment:
 
 # CONTABO VPS - Ubuntu (discontinued)
 
-This application is hosted 
+This application is hosted on a virtual private server (VPS) @ contabo.com.
+- Ubuntu 24.04.1 LTS
+  - etc. same as below
+
+- This setup is rather complicated (and also slow) using VS Code on the remote server. The VS Code concept is "keep the source on the remote".
+- Remote is OK, but then you will need Pycharm and syncing. You need to pay for remote debugging with PyCharm.
+- I prefer keeping things simple (local), thus the move to Mac OS, see above. This way PyCharm is also a fallback for VC Code.
 
 # WINDOWS - WSL - Python (discontinued)
 
