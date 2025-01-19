@@ -2,6 +2,7 @@
 # (ignored) location for all project documentation
 # however this is in the backup path for local backups
 docs/
+.DS_Store
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

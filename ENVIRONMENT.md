@@ -1,4 +1,22 @@
-# WINDOWS - WSL - Python
+# MACOS - Python
+
+This application is hosted in a new development environment:
+- Mac mini M4 Pro (Windows laptop discontinued, >7 years old)
+- Mac OS Sequoia, version 15.2
+  - Visual Studion Code, version 1.96.4
+  - Python (system), version 3.9.6
+  - Homebrew, version 4.4.16
+    - openssl, version 3.4.0
+    - Python, version 3.13.1
+    - PIP, version 24.3.1 
+    - GIT, version 2.48.1
+    - AWS, CLI version 2.32.2
+    - GDAL, version 3.10.1
+    - SQLite, version 3.43.2
+    - rsync, version 3.4.1
+
+# WINDOWS - WSL - Python (discontinued)
+
 This application is hosted in an development environment:
 - Windows 10, version 22H2, build 19045.4894
   - Visual Studio Code version 1.93.1
@@ -16,4 +34,3 @@ This application is hosted in an development environment:
 This application uses a Python virtual environment (.venv) with the following packages:
 - numpy (version 2.1.1)
 - boto3 (version 1.35.23)
-
