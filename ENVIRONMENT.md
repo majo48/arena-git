@@ -15,6 +15,10 @@ This application is hosted in a new development environment:
     - SQLite, version 3.43.2
     - rsync, version 3.4.1
 
+# CONTABO VPS - Ubuntu (discontinued)
+
+This application is hosted 
+
 # WINDOWS - WSL - Python (discontinued)
 
 This application is hosted in an development environment:
