@@ -3,17 +3,17 @@
 This application is hosted in a new development environment:
 - Mac mini M4 Pro (Windows laptop discontinued, >7 years old)
 - Mac OS Sequoia, version 15.2
-  - Visual Studion Code, version 1.96.4
-  - Python (system), version 3.9.6
+  - PyCharm, version 2024.3.1.1 (Community Edition)
+    - Settings > Project > Python Interpreter: Python 3.9 virtuelenv at ~/Projects/arena-git/.venv
+    - Settings > Terminal: [v] Activate virtualenv
   - Homebrew, version 4.4.16
     - openssl, version 3.4.0
-    - Python, version 3.13.1
+    - Python, version 3.9.6 (system)
     - PIP, version 24.3.1 
     - GIT, version 2.48.1
     - AWS, CLI version 2.32.2
     - GDAL, version 3.10.1
     - SQLite, version 3.43.2
-    - rsync, version 3.4.1
 
 # CONTABO VPS - Ubuntu (discontinued)
 
@@ -22,12 +22,12 @@ This application is hosted on a virtual private server (VPS) @ contabo.com.
   - etc. same as below
 
 - This setup is rather complicated (and also slow) using VS Code on the remote server. The VS Code concept is "keep the source on the remote".
-- Remote is OK, but then you will need Pycharm and syncing. You need to pay for remote debugging with PyCharm.
-- I prefer keeping things simple (local), thus the move to Mac OS, see above. This way PyCharm is also a fallback for VC Code.
+- Remote is OK, but Pycharm (and syncing) are much better experience. You need to pay for remote debugging with PyCharm.
+- I prefer keeping things simple (local), thus the move to macOS, see above. This way PyCharm is also a fallback for VC Code.
 
 # WINDOWS - WSL - Python (discontinued)
 
-This application is hosted in an development environment:
+This application is hosted in a development environment:
 - Windows 10, version 22H2, build 19045.4894
   - Visual Studio Code version 1.93.1
 - WSL version 2.2.4.0: 
@@ -44,3 +44,4 @@ This application is hosted in an development environment:
 This application uses a Python virtual environment (.venv) with the following packages:
 - numpy (version 2.1.1)
 - boto3 (version 1.35.23)
+- decouple (version 0.0.7)

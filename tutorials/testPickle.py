@@ -70,8 +70,10 @@ def readBLOB(id):
 
 # just pickle ========
 oldList = [ 10, 12, 13, 15, 20, 30, 33, 43, 50, 77, 81, 82, 83, 99, 100 ]
+print(oldList)
 pData = pickle.dumps(oldList, protocol=-1)
 unpickled1 = pickle.loads(pData)
+print(unpickled1)
 
 # with SQLite3 ========
 if os.path.exists(DBNAME):
@@ -84,6 +86,7 @@ buildDatabase()
 insertBLOB(1, pData) 
 
 # unpickle value from db
-unpickled2 = pickle.loads(readBLOB(1)) 
+unpickled2 = pickle.loads(readBLOB(1))
+print(unpickled2)
 
 pass

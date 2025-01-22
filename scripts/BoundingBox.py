@@ -72,7 +72,7 @@ class BoundingBox:
             return "0"+rslt
         elif leading == 2:
             return "00"+rslt
-        elif leading == 2:
+        elif leading == 3:
             return "000"+rslt
         else:
             raise Exception('panic')
