@@ -44,4 +44,4 @@ This application is hosted in a development environment:
 This application uses a Python virtual environment (.venv) with the following packages:
 - numpy (version 2.1.1)
 - boto3 (version 1.35.23)
-- decouple (version 0.0.7)
+- python-decouple (version 3.8)

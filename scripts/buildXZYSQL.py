@@ -13,19 +13,7 @@ import subprocess
 import os
 import shutil
 import logging
-
-# local folders for storing tiles and XYZ files ========
-
-DESTINATION_TILES = "/home/mart/arena-git/build/tiles/"
-DESTINATION_XYZ = "/home/mart/arena-git/build/"
-LOGFILE = '/home/mart/arena-git/build/arena.log' # normally .ignored
-XDBPATH = "/mnt/c/Users/mart/Desktop/arena.db"   # in Windows, Debug with DB Browser App
-
-# geo coordinates of the operating area ========
-NORTH = 48.000
-SOUTH = 47.000
-WEST  = 8.000
-EAST  = 10.000
+from decouple import config
 
 # functions ========
 
@@ -45,7 +33,7 @@ def get_tile(tilename):
         Read Copernicus tile from AWS S3 using subprocess with aws (cli)
     """
     s3link = "s3://copernicus-dem-90m/"+tilename+"/"
-    destination = DESTINATION_TILES+tilename+"/"
+    destination = config("TILE_FOLDER")+tilename+"/"
     if not os.path.isdir(destination):
         out = subprocess.run(["aws", "s3", "cp", s3link, destination, "--recursive"])
         print(out.stdout)
@@ -55,34 +43,40 @@ def get_XYZ_file(tilename):
     """
         Read Copernicus tile and convert to XYZ format using subprocess with GDAL (cli)
     """
-    source = DESTINATION_TILES+tilename+"/"+tilename+".tif"
-    destination = DESTINATION_XYZ+tilename+".txt"
+    source = config("TILE_FOLDER")+tilename+"/"+tilename+".tif"
+    destination = config("XYZ_FOLDER")+tilename+".txt"
     if not os.path.exists(destination):
         out = subprocess.run(["gdal_translate", "-of", "XYZ", source, destination])
         print(out.stdout)
     pass
 
-
 # main code ==============================================
 
 # remove existing folders and files
-clean_up_dir(DESTINATION_TILES)
-clean_up_dir(DESTINATION_XYZ)
-if os.path.exists(LOGFILE): 
-    os.remove(LOGFILE) # if it exists
-if os.path.exists(XDBPATH): 
-    os.remove(XDBPATH) # if it exists
+clean_up_dir(config("TILE_FOLDER"))
+clean_up_dir(config("XYZ_FOLDER"))
+logfile = config("LOG_FILENAME")
+if os.path.exists(logfile):
+    os.remove(logfile) # if it exists
+xdbpath = config("DB_FILENAME")
+if os.path.exists(xdbpath):
+    os.remove(xdbpath) # if it exists
 
 # setup logging ====
 logging.basicConfig(
     level=logging.DEBUG, 
     format='%(asctime)s %(levelname)s %(message)s',
     datefmt='%H:%M:%S',
-    handlers=[logging.FileHandler(LOGFILE)]) 
+    handlers=[logging.FileHandler(logfile)])
 logging.debug('Start new logging session.')
 
 # set the bounding box for the operating area, all values will be rounded to one degree
-bb = BoundingBox(north=NORTH, south=SOUTH, west=WEST, east=EAST) 
+bb = BoundingBox(
+    north=config("ARENA_NORTH"),
+    south=config("ARENA_SOUTH"),
+    west=config("ARENA_WEST"),
+    east=config("ARENA_EAST")
+)
 print("Bounding Box:", bb.top, bb.bottom, bb.left, bb.right)
 print("Tiles:", str(bb.number_of_tiles))
 
@@ -96,7 +90,7 @@ for name in bb.tilenames:
     
     # build XYZ file and object
     get_XYZ_file(tilename)
-    source = DESTINATION_XYZ+tilename+".txt"
+    source = config("XYZ_FOLDER")+tilename+".txt"
     xyz = XYZ(source)
     
     # build database

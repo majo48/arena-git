@@ -9,12 +9,9 @@ from Route import Route
 from Dbcache import Dbcache
 import json
 import logging
+from decouple import config
 
 # constants ========
-
-# filenames and paths
-# XDBPATH = "/home/mart/arena-git/build/arena.db" # in WSL Project
-XDBPATH = "/mnt/c/Users/mart/Desktop/arena.db" # in Windows, Debug with 'DB Browser' App
 
 # locations (lat, long)
 cityZug = (47.170358, 8.518013)         # (lat, long)
@@ -28,7 +25,7 @@ citySeon = (47.34673, 8.16113)          # (lat, long)
 # main ========
 
 logging.debug('Begin unit test for database.')
-with Dbcache(XDBPATH) as dbcache:
+with Dbcache(config("DB_FILENAME")) as dbcache:
     #
     # create test route, waypoints and tracks
     metadata = dbcache.dbsql.get_metadata()

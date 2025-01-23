@@ -9,13 +9,7 @@ from scripts.Dbsql import Dbsql
 import logging
 import os
 import sys
-
-# constants =============================================
-# filenames and paths
-LOGFILE = '/home/mart/arena-git/build/arena.log' # normally .ignored
-XYZPATH = "/home/mart/arena-git/build/Copernicus_DSM_COG_30_N47_00_E008_00_DEM.txt"
-# XDBPATH = "/home/mart/arena-git/build/arena.db" # in WSL Project
-XDBPATH = "/mnt/c/Users/mart/Desktop/arena.db" # in Windows, Debug with DB Browser App
+from decouple import config
 
 def calculate_size(obj):
     """
@@ -49,21 +43,24 @@ def calculate_size(obj):
 # main code =============================================
 
 # setup logging ====
-if os.path.exists(LOGFILE):
-    os.remove(LOGFILE) # start a new logfile for each session
+logfile = config("LOG_FILENAME")
+if os.path.exists(logfile):
+    os.remove(logfile) # start a new logfile for each session
 logging.basicConfig(
     level=logging.DEBUG, 
     format='%(asctime)s %(levelname)s %(message)s',
     datefmt='%H:%M:%S',
     handlers=[
-        logging.FileHandler(LOGFILE)
+        logging.FileHandler(logfile)
     ]  
 ) 
 logging.debug('Start new logging session.')
 
 # convert text to database ====
-with Dbsql(XDBPATH) as sqldb:
-    xyz = XYZ(XYZPATH)
+xdbpath = config("DB_FILENAME")
+with Dbsql(xdbpath) as sqldb:
+    xyzpath = config("XYZ_FILENAME")
+    xyz = XYZ(xyzpath)
     logging.debug('Finished building XYZ.')
     print("Building database, please wait ...")
     #
@@ -73,10 +70,10 @@ with Dbsql(XDBPATH) as sqldb:
     sqldb.set_col_headers(xyz.col_headers)
     logging.debug('Built column headers.')
     #
-    sqldb.set_rows(xyz.matrix, XYZPATH, xyz.bounding_box)
+    sqldb.set_rows(xyz.matrix, xyzpath, xyz.bounding_box)
     logging.debug('Built matrix rows.')
     #
-    sqldb.set_metadata(XYZPATH, xyz.bounding_box)
+    sqldb.set_metadata(xyzpath, xyz.bounding_box)
 pass
 logging.debug('row headers: '+str(calculate_size(xyz.row_headers))+' bytes.')
 logging.debug('col headers: '+str(calculate_size(xyz.col_headers))+' bytes.')

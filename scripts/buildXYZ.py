@@ -8,15 +8,14 @@ from BoundingBox import BoundingBox
 from XYZ import XYZ
 import subprocess
 import os
-
-destination_tiles = "/home/mart/arena-git/build/tiles/"
-destination_XYZ = "/home/mart/arena-git/build/"
+from decouple import config
 
 def get_tile(tilename):
     """
         Read Copernicus tile from AWS S3 using aws (cli)
     """
     s3link = "s3://copernicus-dem-90m/"+tilename+"/"
+    destination_tiles = config("TILE_FOLDER")
     destination = destination_tiles+tilename+"/"
     if not os.path.isdir(destination):
         out = subprocess.run(["aws", "s3", "cp", s3link, destination, "--recursive"])
@@ -27,8 +26,10 @@ def get_XYZ(tilename):
     """
         Read Copernicus tile and convert to XYZ format using GDAL (cli)
     """
+    destination_tiles = config("TILE_FOLDER")
     source = destination_tiles+tilename+"/"+tilename+".tif"
-    destination = destination_XYZ+tilename+".txt"
+    destination_xyz = config("XYZ_FOLDER")
+    destination = destination_xyz+tilename+".txt"
     if not os.path.exists(destination):
         out = subprocess.run(["gdal_translate", "-of", "XYZ", source, destination])
         print(out.stdout)
@@ -38,7 +39,8 @@ def check_XYZ(tilename):
     """
         Check XYZ file for any inconsistencies
     """
-    source = destination_XYZ+tilename+".txt"
+    destination_xyz = config("XYZ_FOLDER")
+    source = destination_xyz+tilename+".txt"
     xyz = XYZ(source)
     # continue here
 
