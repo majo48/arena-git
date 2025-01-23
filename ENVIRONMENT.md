@@ -45,3 +45,9 @@ This application uses a Python virtual environment (.venv) with the following pa
 - numpy (version 2.1.1)
 - boto3 (version 1.35.23)
 - python-decouple (version 3.8)
+
+# CREDENTIALS
+
+This application needs credentials to access external storage sites:
+- AWS: https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html#cli-configure-files-methods
+- GITHUB: https://docs.github.com/en/account-and-profile/setting-up-and-managing-your-personal-account-on-github/managing-user-account-settings/permission-levels-for-a-personal-account-repository
