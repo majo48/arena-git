@@ -43,18 +43,19 @@ def get_XYZ_file(tilename):
     """
         Read Copernicus tile and convert to XYZ format using subprocess with GDAL (cli)
     """
-    source = config("TILE_FOLDER")+tilename+"/"+tilename+".tif"
-    destination = config("XYZ_FOLDER")+tilename+".txt"
+    tile_folder = config("TILE_FOLDER")
+    source = tile_folder+tilename+"/"+tilename+".tif"
+    destination = tile_folder+tilename+".txt"
     if not os.path.exists(destination):
         out = subprocess.run(["gdal_translate", "-of", "XYZ", source, destination])
         print(out.stdout)
     pass
+    return destination
 
 # main code ==============================================
 
 # remove existing folders and files
 clean_up_dir(config("TILE_FOLDER"))
-clean_up_dir(config("XYZ_FOLDER"))
 logfile = config("LOG_FILENAME")
 if os.path.exists(logfile):
     os.remove(logfile) # if it exists
@@ -89,8 +90,7 @@ for name in bb.tilenames:
     get_tile(tilename)
     
     # build XYZ file and object
-    get_XYZ_file(tilename)
-    source = config("XYZ_FOLDER")+tilename+".txt"
+    source = get_XYZ_file(tilename)
     xyz = XYZ(source)
     
     # build database

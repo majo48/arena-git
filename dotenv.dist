@@ -7,7 +7,6 @@ DB_FILENAME=/fq/path/name/arena-git/build/arena.db
 
 # folder name ending with slash
 TILE_FOLDER=/fq/path/name/arena-git/build/tiles/
-XYZ_FOLDER=/fq/path/name/arena-git/build/xyz/
 
 # geo coordinates of the bounding box (NORTH > SOUTH, EAST > WEST)
 ARENA_NORTH=48.000

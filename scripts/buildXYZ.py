@@ -25,11 +25,11 @@ def get_tile(tilename):
 def get_XYZ(tilename):
     """
         Read Copernicus tile and convert to XYZ format using GDAL (cli)
+        Reference: gdal_translate --format XYZ
     """
     destination_tiles = config("TILE_FOLDER")
     source = destination_tiles+tilename+"/"+tilename+".tif"
-    destination_xyz = config("XYZ_FOLDER")
-    destination = destination_xyz+tilename+".txt"
+    destination = destination_tiles+tilename+".txt"
     if not os.path.exists(destination):
         out = subprocess.run(["gdal_translate", "-of", "XYZ", source, destination])
         print(out.stdout)
@@ -39,9 +39,8 @@ def check_XYZ(tilename):
     """
         Check XYZ file for any inconsistencies
     """
-    destination_xyz = config("XYZ_FOLDER")
-    source = destination_xyz+tilename+".txt"
-    xyz = XYZ(source)
+    destination_tiles = config("TILE_FOLDER")
+    source = destination_tiles+tilename+".txt"
     # continue here
 
 # main code ==============================================
