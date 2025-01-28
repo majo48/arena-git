@@ -36,7 +36,7 @@ class BoundingBox:
 
     def set_names(self):
         """
-            derive 'tile names' and 'tile bounding boxes' from bounding box parameters north, south, west, east:
+            derive 'tile names' and 'tile bounding boxes' from BoundingBox parameters north, south, west, east:
                 one file (tile) per 1 x 1 degree
                 ordered from left (west) to right (east) and
                 ordered from top (north) to bottom (south)

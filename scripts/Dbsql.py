@@ -60,27 +60,15 @@ class Dbsql:
         """ 
         context manager: end of session 
         """
-        # close connection
-        self.conn.close()
-
-    # common functions ========
-
-    def _delete_rows(self, tName):
-        """
-        delete all rows in table 'tName'
-        """
-        cursor: Cursor = self.conn.cursor()
-        cursor.execute("DELETE FROM "+tName+";")
-        self.conn.commit()
+        self.conn.close() # close connection
 
     # row headers ========
 
     def set_row_headers(self, row_headers):
         """
-        set pickled row headers (latitudes aka Y, values ascending)
+        set pickled row headers (latitudes aka Y, values descending)
         """
         try:
-            self._delete_rows("main.rowhdrs")
             sql = "INSERT INTO main.rowhdrs(rowhdrs) VALUES (?);"
             cursor: Cursor = self.conn.cursor()
             bData = pickle.dumps(row_headers, protocol=-1) # serialize row headers
@@ -92,7 +80,7 @@ class Dbsql:
 
     def get_row_headers(self):
         """
-        get pickeled row headers (latitudes aka Y, values ascending)
+        get pickeled row headers (latitudes aka Y, values descending)
         """
         try:
             sql = "SELECT rowhdrs FROM main.rowhdrs ORDER BY id DESC LIMIT 1;"
@@ -111,7 +99,6 @@ class Dbsql:
         set pickeled column headers (longitudes aka X, aka values ascending)
         """
         try:
-            self._delete_rows("main.colhdrs")
             sql = "INSERT INTO main.colhdrs(colhdrs) VALUES (?);"
             cursor: Cursor = self.conn.cursor()
             bData = pickle.dumps(col_headers, protocol=-1) # serialize column headers
@@ -142,7 +129,6 @@ class Dbsql:
         set all rows in matrix
         """
         try:
-            self._delete_rows("main.rows")
             sql = "INSERT INTO main.rows(id, row) VALUES (?, ?);"
             cursor: Cursor = self.conn.cursor()
             # add each matrix row to empty table
@@ -175,7 +161,6 @@ class Dbsql:
         set metadata
         """
         try:
-            self._delete_rows("main.metadata")
             sql = "INSERT INTO main.metadata(tilepath, tileinfo) VALUES (?, ?);"
             cursor: Cursor = self.conn.cursor()
             cursor.execute(sql, (tilepath, tileinfo))
