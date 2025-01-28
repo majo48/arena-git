@@ -127,7 +127,7 @@ class XYZ:
         
     def get_bounding_box_string(self):
         """
-        Get the json formated string for the bounding box of the matrix
+            Get the json formated string for the bounding box of the matrix
         """ 
         bb = { 
             "top": self.row_headers[0], 

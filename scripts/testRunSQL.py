@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-    Unit test script, exercising the SQLite3 database
+    Test run script, exercising the SQLite3 database
 """
 
 from Dbsql import Dbsql

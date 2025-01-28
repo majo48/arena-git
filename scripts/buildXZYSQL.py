@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 
 """
-    Build XYZ file from Copernicus data residing on AWS S3, and
-    build SQLite3 database using XYZ file data
+    Build XYZ file from Copernicus data residing on AWS S3 &
+    Build SQLite3 database using XYZ file data
+        Database file is in config("TILE_FOLDER"), filename 'arena.db'
 """
 
 # packages ========
@@ -14,12 +15,13 @@ import os
 import shutil
 import logging
 from decouple import config
+from scripts.Dbsql import Dbsql
 
 # functions ========
 
 def clean_up_dir(pathtofolder):
     """
-    Remove all local folders and files
+        Remove all local folders and files
     """
     for root, dirs, files in os.walk(pathtofolder):
         for f in files:
@@ -28,7 +30,7 @@ def clean_up_dir(pathtofolder):
             shutil.rmtree(os.path.join(root, d))
     pass
 
-def get_tile(tilename):
+def get_AWS_tile(tilename):
     """
         Read Copernicus tile from AWS S3 using subprocess with aws (cli)
     """
@@ -37,7 +39,7 @@ def get_tile(tilename):
     if not os.path.isdir(destination):
         out = subprocess.run(["aws", "s3", "cp", s3link, destination, "--recursive"])
         print(out.stdout)
-    pass
+    return destination
 
 def get_XYZ_file(tilename):
     """
@@ -49,7 +51,6 @@ def get_XYZ_file(tilename):
     if not os.path.exists(destination):
         out = subprocess.run(["gdal_translate", "-of", "XYZ", source, destination])
         print(out.stdout)
-    pass
     return destination
 
 # main code ==============================================
@@ -59,9 +60,9 @@ clean_up_dir(config("TILE_FOLDER"))
 logfile = config("LOG_FILENAME")
 if os.path.exists(logfile):
     os.remove(logfile) # if it exists
-xdbpath = config("DB_FILENAME")
-if os.path.exists(xdbpath):
-    os.remove(xdbpath) # if it exists
+xdb_path = config("DB_FILENAME")
+if os.path.exists(xdb_path):
+    os.remove(xdb_path) # if it exists
 
 # setup logging ====
 logging.basicConfig(
@@ -71,12 +72,12 @@ logging.basicConfig(
     handlers=[logging.FileHandler(logfile)])
 logging.debug('Start new logging session.')
 
-# set the bounding box for the operating area, all values will be rounded to one degree
+# set the bounding box for the operating area, all values rounded to one degree
 bb = BoundingBox(
-    north=config("ARENA_NORTH"),
-    south=config("ARENA_SOUTH"),
-    west=config("ARENA_WEST"),
-    east=config("ARENA_EAST")
+    north=float(config("ARENA_NORTH")),
+    south=float(config("ARENA_SOUTH")),
+    west=float(config("ARENA_WEST")),
+    east=float(config("ARENA_EAST"))
 )
 print("Bounding Box:", bb.top, bb.bottom, bb.left, bb.right)
 print("Tiles:", str(bb.number_of_tiles))
@@ -87,12 +88,19 @@ for name in bb.tilenames:
     # build tile
     tilename = name["fldr"]
     print("Tile:", tilename)
-    get_tile(tilename)
+    aws_path = get_AWS_tile(tilename)
     
-    # build XYZ file and object
-    source = get_XYZ_file(tilename)
-    xyz = XYZ(source)
-    
-    # build database
-    pass # work in progress
-pass
+    # build XYZ file
+    xyz_path = get_XYZ_file(tilename)
+
+    with Dbsql(xdb_path) as sqldb:
+        # build XYZ object
+        xyz_obj = XYZ(xyz_path)
+        # build database
+        sqldb.set_row_headers(xyz_obj.row_headers)
+        sqldb.set_col_headers(xyz_obj.col_headers)
+        sqldb.set_rows(xyz_obj.matrix, xyz_path, xyz_obj.bounding_box)
+        sqldb.set_metadata(xyz_path, xyz_obj.bounding_box)
+    pass # end for
+print("Finished building database.")
+exit(0)
