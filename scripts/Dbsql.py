@@ -1,7 +1,7 @@
 """
-    SQLite with Copernicus elevation data.
-    N x 1200 x 1200 cells with geospatial coordinates and elevation data,
-    each coordinate describes the centerpoint of the geospatial cell. 
+SQLite with Copernicus elevation data.
+N x 1200 x 1200 cells with geospatial coordinates and elevation data.
+    Each coordinate describes the centerpoint of the geospatial cell.
     N is the number of tiles needed for arena.
 """
 
@@ -9,7 +9,7 @@ import sqlite3
 from sqlite3.dbapi2 import Connection, Cursor
 import logging
 import pickle
-
+import json
 
 class Dbsql:
 
@@ -186,20 +186,40 @@ class Dbsql:
 
     def get_metadata(self):
         """
-        get metadata
+        get all metadata records
         """
         try:
-            sql = "SELECT tilepath, tileinfo FROM main.metadata ORDER BY id DESC LIMIT 1;"
+            sql = "SELECT tilepath, tileinfo FROM main.metadata ORDER BY id ASC;"
             cursor: Cursor = self.conn.cursor()
             cursor.execute(sql)
-            rslt = cursor.fetchall()[0]
+            rslt = cursor.fetchall()
         except sqlite3.Error as e:
             logging.error("SQLite SELECT TABLE colhdrs error occurred:" + e.args[0])
             rslt = ()
         finally:
-            return rslt # tuple, ('path', 'info')
+            return rslt # list, ('path', 'info')
 
-       
+    def get_bounding_box(self):
+        """
+        calculate the total bounding box from all metadata items
+        """
+        for key, value in enumerate(self.get_metadata()):
+            meta = json.loads(value[1])
+            if key == 0:
+                top = meta["top"]
+                bottom = meta["bottom"]
+                left = meta["left"]
+                right = meta["right"]
+            else: # key > 0
+                if meta["top"] > top: top = meta["top"]
+                if meta["bottom"] < bottom: bottom = meta["bottom"]
+                if meta["left"] < left: left = meta["left"]
+                if meta["right"] > right: right = meta["right"]
+            pass
+        pass
+        return {"top": top, "bottom": bottom, "left": left, "right": right}
+
+
 # main ========
 
 if __name__ == '__main__':
