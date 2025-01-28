@@ -36,11 +36,14 @@ class BoundingBox:
 
     def set_names(self):
         """
-            derive names from bounding box, one file per 1 x 1 degree  
+            derive 'tile names' and 'tile bounding boxes' from bounding box parameters north, south, west, east:
+                one file (tile) per 1 x 1 degree
+                ordered from left (west) to right (east) and
+                ordered from top (north) to bottom (south)
         """
-        row = self.bottom
+        row = self.top-1
         col = self.left
-        while row < self.top:
+        while row >= self.bottom:
             while col < self.right:
                 northing = "N"+self.leading_zeros(row, 2)+"_00"
                 easting = "E"+self.leading_zeros(col, 3)+"_00"
@@ -49,8 +52,9 @@ class BoundingBox:
                     "top": row+1, "bottom": row, "left": col, "right": col+1, 
                     "fldr": fldr
                     })
-                col += 1 # next up
-            row += 1 # next right
+                col += 1 # next right
+            row -= 1 # next down
+            col = self.left # reset column
         return
 
     def set_unittests(self, unittests):
