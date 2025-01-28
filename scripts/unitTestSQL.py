@@ -2,7 +2,7 @@
 
 """
     Unit test the SQL database with all test cases in
-        SQL database > meta data > tileinfo > unittests (list)
+        SQL database > metadata > tileinfo > unittests (list)
 """
 
 # packages ========
@@ -14,22 +14,22 @@ from Dbcache import Dbcache
 
 # functions ========
 
-def get_test_cases(xdb_path):
+def get_test_cases(xdb):
     """
     get test cases from one or more metadata records
     :return: list of test cases
     """
-    test_case_list = []  # list of test cases
-    with Dbsql(xdb_path) as sqldb:
-        metadatas = sqldb.get_metadata()
-        for metadata in metadatas:
+    tcl = []  # list of test cases
+    with Dbsql(xdb) as sqldb:
+        gmd = sqldb.get_metadata()
+        for metadata in gmd:
             mydict = json.loads(metadata[1])
             test_cases = mydict["unittests"]
-            for test_case in test_cases:
-                test_case_list.append(test_case)
+            for tc in test_cases:
+                tcl.append(tc)
             pass
         pass
-    return test_case_list
+    return tcl
 
 # main code ========
 
