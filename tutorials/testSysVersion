@@ -1,0 +1,6 @@
+#!/opt/homebrew/bin python3
+
+import sys
+
+version = sys.version_info
+print("Python version:", str(version[0])+"."+str(version[1]))
