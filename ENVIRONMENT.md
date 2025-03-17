@@ -4,12 +4,12 @@ This application is hosted in a new development environment:
 - Mac mini M4 Pro (Windows laptop discontinued, >7 years old)
 - Mac OS Sequoia, version 15.2
   - PyCharm, version 2024.3.1.1 (Community Edition)
-    - Settings > Project > Python Interpreter: Python 3.9 virtuelenv at ~/Projects/arena-git/.venv
+    - Settings > Project > Python Interpreter: Python 3.13 /opt/homebrew/bin/python3.13
     - Settings > Terminal: [v] Activate virtualenv
   - Homebrew, version 4.4.16
     - openssl, version 3.4.0
-    - Python, version 3.9.6 (system)
-    - PIP, version 24.3.1 
+    - Python, version 3.13
+    - PIP, version 25.0.1
     - GIT, version 2.48.1
     - AWS, CLI version 2.32.2
     - GDAL, version 3.10.1
