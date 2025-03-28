@@ -17,9 +17,6 @@ from decouple import config
 EDGE = 1200 # resolution of the Copernicus GLO-90 DSM
 FACTOR = 2.4
 
-# global var ========
-idx_len_list = [0]  # list of indices (key) and lengths (value)
-
 # matrix ========
 
 def build_matrix(rows, cols):
@@ -31,7 +28,7 @@ def build_matrix(rows, cols):
     for i in range(rows):
         col = bytearray([])  # mutable
         for j in range(cols):
-            z = random.randint(1, 8849) # elevation in meters above mean sea level
+            z = random.randint(0, 8849) # elevation in meters above mean sea level
             z2b = z.to_bytes(2, byteorder='big')
             col.append(z2b[0])  # high byte (big endian)
             col.append(z2b[1])  # low byte  (big endian)
@@ -58,83 +55,34 @@ def build_db(connection):
     finally:
         return success
 
-def _get_row_len(idx):
+def set_row(connection, idx, bytes, offset, max_bytes):
     """
-    get length of rows[idx] in bytes, before writing row to database.
-    - new rows start with length 0.
-    - after writing to database: use _set_row_len to update the length.
-        based upon:   global var (self.)idx_len_list
-        prerequisite: the indices start with 0, and increment += 1
-    :param idx:
-    :return: len: integer or None: error
-    """
-    global idx_len_list
-    if len(idx_len_list)-1 != idx:
-        print('Sequence is out of range, expected: '+str(len(idx_len_list)-1)+', got idx: '+str(idx))
-        return None
-    try:
-        return idx_len_list[idx] # list element exists
-    except IndexError:
-        # new list element
-        idx_len_list.append(0)
-        return 0
-
-def _set_row_len(idx, row_len):
-    """
-    set length of rows[idx] in bytes
-    :param idx:
-    :return: len: integer or None: error
-    """
-    try:
-        idx_len_list[idx] = row_len
-        return row_len
-    except IndexError:
-        print('Sequence is out of range, expected: 0..'+str(len(idx_len_list))+', got idx: '+str(idx))
-        return None
-
-def set_row(connection, idx, bytes, max_bytes):
-    """
-    insert row into table rows
-    :param connection: Connection
-    :param idx: integer
-    :param bytes: bytearray
-    :param max_bytes: integer
-    :return: success: bool
+    insert row of bytes into table rows[idx]
     """
     success = False
-    row_len = _get_row_len(idx)
-    if row_len is None:
-        return success
     bytes_len = len(bytes)
     try:
-        if row_len == 0:
-            # new row
+        if offset == 0:
+            # new row with max size blob of zeros
             sql = 'INSERT INTO rows(id, len, row) VALUES(?, ?, zeroblob(?));'
             connection.execute(sql, (idx, bytes_len, max_bytes))
             # write blob contents
             with connection.blobopen("rows", "row", idx) as blob:
-                blob.write(bytes)
+                blob.write(bytes) # write blob to database
             connection.commit()
-            # set len in local list
-            result = _set_row_len(idx, bytes_len)
-            if result == bytes_len:
-                success = True
+            success = True
         else:
-            # append bytes to existing blob
+            # offset >0: append bytes to existing blob
             with connection.blobopen("rows", "row", idx) as blob:
-                blob.seek(row_len) # set to absolute access position
-                blob.write(bytes)
+                blob.seek(offset) # set to absolute access position
+                blob.write(bytes) # write blob to database
             connection.commit()
-            new_len = row_len + bytes_len
             # set len in database
             sql = 'UPDATE rows SET len = ? WHERE id = ?;'
             curs = connection.cursor()
-            curs.execute(sql, (new_len, idx))
+            curs.execute(sql, (offset+bytes_len, idx))
             connection.commit()
-            # set len in local list
-            result = _set_row_len(idx, new_len)
-            if result == new_len:
-                success = True
+            success = True
         pass
     except sqlite3.Error as sre:
         connection.rollback()
@@ -164,7 +112,7 @@ def run_main():
     max_cols_in_row = 2*EDGE
     max_length = int(FACTOR * max_cols_in_row) # 2.4 * 2 * 1200 = 5760 bytes
     mtrx1 = build_matrix(EDGE, EDGE) # rows, cols
-    # mtrx2 = build_matrix(EDGE, EDGE) # rows, cols
+    mtrx2 = build_matrix(EDGE, EDGE) # rows, cols
     try:
         # build connection to database
         db_filename = config("DB_FILENAME")
@@ -179,25 +127,33 @@ def run_main():
         if not done:
             exit(1)
 
-        # write first blob to database
-        index = 0
-        done = set_row(conn, index, mtrx1[index], max_length)
-        if not done:
-            exit(2)
+        # write first matrix blobs to database
+        offset = 0
+        for index in range(0,EDGE):
+            done = set_row(conn, index, mtrx1[index], offset, max_length)
+            if not done:
+                exit(2)
 
-        # write second blob to database
-        done = set_row(conn, index, mtrx1[index+1], max_length)
-        if not done:
-            exit(2)
+        # append second matrix blobs to database: DB.rows[idx] = mtrx1[idx] + mtrx[idx]
+        offset = len(mtrx1[0])
+        for index in range(0, EDGE):
+            done = set_row(conn, index, mtrx2[index], offset, max_length)
+            if not done:
+                exit(3)
 
-        # read first blob
-        test_row = get_row(curs, index)
-        if test_row is None:
-            exit(3)
-        if mtrx1[index]+mtrx1[index+1] == test_row[2]:
-            print("Match in bytearrays in matrix1 and database.")
-        else:
-            print("Mismatch in bytearrays")
+        # read blobs from database and compare with matrices
+        test_ok = 0
+        test_nok = 0
+        for index in range(0, EDGE):
+            test_row = get_row(curs, index)
+            if test_row is None:
+                exit(4)
+            if mtrx1[index]+mtrx2[index] == test_row[2]:
+                test_ok += 1
+            else:
+                test_nok += 1
+        print("Test OK: "+str(test_ok))
+        print("Test not OK: "+str(test_nok))
         pass
     except sqlite3.Error as e:
         print("SQLite main error: " + e.args[0])
