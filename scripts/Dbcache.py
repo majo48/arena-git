@@ -28,7 +28,7 @@ class Dbcache:
         self.dbsql = Dbsql(dbpath)
         self.row_headers = self.dbsql.get_row_headers()
         self.col_headers = self.dbsql.get_col_headers()
-        self.bounding_box = self.dbsql.get_bounding_box()
+        self.bounding_box = self.dbsql.get_arena_bounding_box()
         self.row_span = round(self.bounding_box['top']-self.bounding_box['bottom']) # floating var
         self.row_len = len(self.row_headers)                                        # integer var
         self.row_fctr = self.row_len/self.row_span                                  # multiplication factor

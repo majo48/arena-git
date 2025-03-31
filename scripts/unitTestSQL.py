@@ -3,6 +3,9 @@
 """
     Unit test the SQL database with all test cases in
         SQL database > metadata > tileinfo > unittests (list)
+
+    Alternate methode:
+        https://gdal.org/en/stable/programs/gdallocationinfo.html
 """
 
 # packages ========
@@ -21,7 +24,7 @@ def get_test_cases(xdb):
     """
     tcl = []  # list of test cases
     with Dbsql(xdb) as sqldb:
-        gmd = sqldb.get_metadata()
+        gmd = sqldb.get_metadata_items()
         for metadata in gmd:
             mydict = json.loads(metadata[1])
             test_cases = mydict["unittests"]
