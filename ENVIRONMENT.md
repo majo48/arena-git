@@ -22,7 +22,7 @@ This application is hosted on a virtual private server (VPS) @ contabo.com.
   - etc. same as below
 
 - This setup is rather complicated (and also slow) using VS Code on the remote server. The VS Code concept is "keep the source on the remote".
-- Remote is OK, but Pycharm (and syncing) are much better experience. You need to pay for remote debugging with PyCharm.
+- Remote is OK, but Pycharm (and syncing) are much better experience. However, you need to pay for remote debugging with PyCharm.
 - I prefer keeping things simple (local), thus the move to macOS, see above. This way PyCharm is also a fallback for VC Code.
 
 # WINDOWS - WSL - Python (discontinued)
